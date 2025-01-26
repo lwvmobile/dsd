@@ -21,7 +21,7 @@ static const uint8_t mac_msg_len[256] = {
 	 8,  18,  0,  7, 11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  7, //8F (needed to add 81 and 8f for Harris)
 	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, //9F
 	16,  0,  0, 11, 13, 11, 11, 11, 10,  0,  0,  0,  0,  0,  0,  0, //AF
-	17,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, //BF, B0 was 0, set to 17 (Harris again)
+	17,  0,  0,  0,  0,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, //BF, B0 was 0, set to 17 (Harris again), B5 Tait 0, set to 5
 	11,  0,  0,  8, 15, 12, 15, 32, 12, 12,  0, 27, 14, 29, 29, 32, //CF
 	 0,  0,  0,  0,  0,  0,  9,  0, 14, 29, 11, 27, 14,  0, 40, 11, //DF 
 	28,  0,  0, 14, 17, 14,  0,  0, 16,  8, 11,  0, 13, 19,  0,  0, //EF
@@ -1838,6 +1838,38 @@ void process_MAC_VPDU(dsd_opts * opts, dsd_state * state, int type, unsigned lon
 
 			len_b = 17;
 
+		}
+
+		//Tait Observed "tdma slot counter", this can be a single message in a facch idle, or a ndary message in a sacch channel update
+		if (MAC[len_a+1] == 0xB5 && MAC[len_a+2] == 0xD8)
+		{
+			uint8_t mfid = MAC[len_a+2];
+			uint16_t sc = (MAC[len_a+4] << 8) + MAC[len_a+5]; //its possible that not all bits in these two bytes are slots, similar to time_date_ann
+			uint8_t len = MAC[len_a+3]; //5 on this opcode (including opcode, mfid, len, and two bytes for slot count)
+
+			//if using the same slot counter bits as time_date_ann, 
+			//then we can trunc the slot count to 13 bits
+			// sc &= 0x1FFF;
+
+			fprintf (stderr, "\n MFID %02X (Tait); Len: %d; Opcode: %02X; Slot Counter: %04X;", mfid, len, MAC[len_a+1], sc);
+
+			len_b = 5;
+
+		}
+
+		//look for other unknown Tait opcodes
+		if (MAC[len_a+1] != 0xB5 && MAC[len_a+2] == 0xD8)
+		{
+			uint8_t mfid = MAC[len_a+2];
+			uint8_t len = MAC[len_a+3];
+			fprintf (stderr, "\n MFID %02X (Tait); Len: %d; Opcode: %02X;", mfid, len, MAC[len_a+1]);
+
+			//dump entire payload
+			fprintf (stderr, " Payload: ");
+			for (i = 4; i < 24; i++)
+				fprintf (stderr, "%02llX", MAC[i+len_a]);
+			
+			len_b = len;
 		}
 
 		/*
