@@ -1812,7 +1812,7 @@ void process_MAC_VPDU(dsd_opts * opts, dsd_state * state, int type, unsigned lon
 			int unk1 = MAC[len_a+1]; //assuming this is the octet set for the 'manufacturer specific' message, may only be the MSBit
 			int unk2 = MAC[len_a+2]; //This field is observed as 0xAA, unknown if this is an opcode, or other MFID
 			int mfid = MAC[len_a+3]; //This is where the 0xA4 (Harris) Identifier is found in this message, as opposed to +2
-			int len  = MAC[len_a+4]; //0x11 or 17 dec sounds reasonable, but cannot verify
+			int len  = MAC[len_a+4] & 0x3F;; //0x11 or 17 dec sounds reasonable, but cannot verify
 			fprintf (stderr, "\n MFID %02X (Harris); Len: %d; Opcode: %02X/%02X;", mfid, len, unk1, unk2);
 
 			//convert bytes to bits, may move this up top
@@ -1840,18 +1840,17 @@ void process_MAC_VPDU(dsd_opts * opts, dsd_state * state, int type, unsigned lon
 
 		}
 
-		//Tait Observed "tdma slot counter", this can be a single message in a facch idle, or a ndary message in a sacch channel update
+		//Tait Observed "tdma micro-slot counter", this can be a single message in a facch idle, or a ndary message in a sacch channel update
 		if (MAC[len_a+1] == 0xB5 && MAC[len_a+2] == 0xD8)
 		{
 			uint8_t mfid = MAC[len_a+2];
-			uint16_t sc = (MAC[len_a+4] << 8) + MAC[len_a+5]; //its possible that not all bits in these two bytes are slots, similar to time_date_ann
-			uint8_t len = MAC[len_a+3]; //5 on this opcode (including opcode, mfid, len, and two bytes for slot count)
+			uint16_t sc = (MAC[len_a+4] << 8) + MAC[len_a+5]; //its possible that not all bits in these two bytes are slots, similar to sync_bcst
+			uint8_t len = MAC[len_a+3] & 0x3F; //5 on this opcode (including opcode, mfid, len, and two bytes for slot count)
 
-			//if using the same slot counter bits as time_date_ann, 
-			//then we can trunc the slot count to 13 bits
-			// sc &= 0x1FFF;
+			//confirmed, this is the same as the sync_bcst slot counter value up to 8000 (0x1F40)
+			sc &= 0x1FFF;
 
-			fprintf (stderr, "\n MFID %02X (Tait); Len: %d; Opcode: %02X; Slot Counter: %04X;", mfid, len, MAC[len_a+1], sc);
+			fprintf (stderr, "\n MFID %02X (Tait); Len: %d; Micro Slot Counter: %04X;", mfid, len, sc);
 
 			len_b = 5;
 
@@ -1861,12 +1860,16 @@ void process_MAC_VPDU(dsd_opts * opts, dsd_state * state, int type, unsigned lon
 		if (MAC[len_a+1] != 0xB5 && MAC[len_a+2] == 0xD8)
 		{
 			uint8_t mfid = MAC[len_a+2];
-			uint8_t len = MAC[len_a+3];
+			uint8_t len = MAC[len_a+3] & 0x3F;
 			fprintf (stderr, "\n MFID %02X (Tait); Len: %d; Opcode: %02X;", mfid, len, MAC[len_a+1]);
+
+			//sanity check
+			if (len > 24)
+				len = 24;
 
 			//dump entire payload
 			fprintf (stderr, " Payload: ");
-			for (i = 4; i < 24; i++)
+			for (i = 4; i < len; i++)
 				fprintf (stderr, "%02llX", MAC[i+len_a]);
 			
 			len_b = len;
