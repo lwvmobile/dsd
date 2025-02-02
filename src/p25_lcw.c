@@ -466,12 +466,29 @@ void p25_lcw (dsd_opts * opts, dsd_state * state, uint8_t LCW_bits[], uint8_t ir
       fprintf (stderr, " MFIDA4 (Harris) Data Channel; SRC: %d; TGT: %d;", src, tgt);
     }
 
+    //observed on Tait conventional / uplink
+    else if (lc_mfid == 0xD8 && lc_format == 0x00)
+    {
+      fprintf (stderr, " MFID D8 (Tait) Talker Alias: ");
+      //Up to 8 ISO7 encoded characters. Can other encoding schemes also be used?
+      uint8_t alias[8]; memset(alias, 0, sizeof(alias));
+      for (uint i = 0; i < 8; i++)
+      {
+        alias[i] = (uint8_t)ConvertBitIntoBytes(&LCW_bits[16+(i*7)], 7);
+        fprintf (stderr, "%c", alias[i]);
+      }
+
+      //For Ncurses Display; TODO: cleanup alias handling
+      sprintf (state->dmr_embedded_gps[0], "%c%c%c%c%c%c%c%c", alias[0], alias[1], alias[2], alias[3], alias[4], alias[5], alias[6], alias[7]);
+    }
+
     //not a duplicate, this one will print if not MFID 0 or 1
     else
     {
       fprintf (stderr, " Unknown Format %02X MFID %02X ", lc_format, lc_mfid);
       if (lc_mfid == 0x90) fprintf (stderr, "(Moto)");
       else if (lc_mfid == 0xA4) fprintf (stderr, "(Harris)");
+      else if (lc_mfid == 0xD8) fprintf (stderr, "(Tait)");
     }
   }
 
