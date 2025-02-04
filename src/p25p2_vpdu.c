@@ -1861,7 +1861,7 @@ void process_MAC_VPDU(dsd_opts * opts, dsd_state * state, int type, unsigned lon
 		{
 			uint8_t mfid = MAC[len_a+2];
 			uint8_t len = MAC[len_a+3] & 0x3F;
-			fprintf (stderr, "\n MFID %02X (Tait); Len: %d; Opcode: %02X;", mfid, len, MAC[len_a+1]);
+			fprintf (stderr, "\n MFID %02X (Tait); Len: %d; Opcode: %02llX;", mfid, len, MAC[len_a+1]);
 
 			//sanity check
 			if (len > 24)
