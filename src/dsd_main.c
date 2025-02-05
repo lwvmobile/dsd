@@ -1534,11 +1534,8 @@ if (opts->audio_out_type == 0)
   openPulseOutput(opts);
 }
 
-// #ifdef AERO_BUILD //NOTE: Blame seems to be synctest8 not being initialized (will continue to test)
-// //TODO: More Random Cygwin Related M17 Bugs to sort out
-// if(opts->frame_m17 == 1)
-//   for (int i = 0; i < 960; i++) getSymbol(opts, state, 1); //I think this is actually just framesync being a pain
-// #endif
+//test P25 moto alias by loading in test vectors captured from a system and dumped on forum (see dsd_gps.c)
+// apx_embedded_alias_test(opts, state); //enable this to run test
 
     while (!exitflag)
     {

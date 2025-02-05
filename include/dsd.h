@@ -1256,6 +1256,9 @@ void dmr_gateway_identifier (uint32_t source, uint32_t target); //translate spec
 //Embedded Alias and GPS reports
 void dmr_embedded_alias_header (dsd_opts * opts, dsd_state * state, uint8_t lc_bits[]);
 void dmr_embedded_alias_blocks (dsd_opts * opts, dsd_state * state, uint8_t lc_bits[]);
+void apx_embedded_alias_test (dsd_opts * opts, dsd_state * state);
+void apx_embedded_alias_header (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t lc_bits[]);
+void apx_embedded_alias_blocks (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t lc_bits[]);
 void dmr_embedded_gps (dsd_opts * opts, dsd_state * state, uint8_t lc_bits[]);
 void apx_embedded_gps (dsd_opts * opts, dsd_state * state, uint8_t lc_bits[]);
 void lip_protocol_decoder (dsd_opts * opts, dsd_state * state, uint8_t * input);

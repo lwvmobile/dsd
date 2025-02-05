@@ -764,3 +764,180 @@ void apx_embedded_gps (dsd_opts * opts, dsd_state * state, uint8_t lc_bits[])
 
   fprintf (stderr, "%s", KNRM);
 }
+
+uint8_t alias_scramble[256] = { 
+ 0xA8, 0xDF, 0x9E, 0x04, 0xF5, 0xF9, 0xEE, 0x1B, 0xAC, 0x3E, 0xE2, 0xAD, 0x71, 0xFC, 0x38, 0x03,
+ 0x59, 0xCE, 0xED, 0x82, 0xE1, 0xBD, 0x28, 0x86, 0x39, 0x78, 0x1C, 0xB7, 0xBA, 0xA3, 0x41, 0xD0,
+ 0x6D, 0x1F, 0x2F, 0xBB, 0x3D, 0x02, 0x3A, 0x20, 0x5F, 0x42, 0xC7, 0xA2, 0x70, 0x6E, 0x21, 0x7E,
+ 0x22, 0x90, 0xDB, 0xC8, 0xD7, 0x23, 0x85, 0xE0, 0xFB, 0x8D, 0x79, 0xEC, 0x33, 0xD6, 0xCC, 0x3C,
+ 0xA9, 0x24, 0x8F, 0x6C, 0x36, 0x25, 0x26, 0xBC, 0xFF, 0xEB, 0x34, 0xA1, 0x2D, 0x2E, 0x44, 0x48,
+ 0x45, 0xDD, 0x5E, 0x60, 0x9D, 0x99, 0xCB, 0x46, 0x8C, 0xBF, 0xDA, 0x47, 0x61, 0xD9, 0xD5, 0xD4,
+ 0xCA, 0xC3, 0xC2, 0x62, 0x63, 0x7A, 0x80, 0x64, 0x65, 0x98, 0xC1, 0x8B, 0x8A, 0x66, 0x7C, 0x7D,
+ 0x52, 0x76, 0x54, 0xAB, 0xE3, 0xC9, 0x14, 0xDE, 0x27, 0xDC, 0xF0, 0xE9, 0x77, 0x88, 0x31, 0xFD,
+ 0xB8, 0x4F, 0x4C, 0x58, 0xD1, 0x0F, 0x55, 0x13, 0xEA, 0x73, 0x6F, 0xFE, 0x7B, 0xE4, 0x74, 0xB5,
+ 0xA7, 0x87, 0xB1, 0x94, 0x07, 0x18, 0xF6, 0xB4, 0x4A, 0x12, 0xB3, 0x9B, 0xCF, 0x0C, 0x89, 0xC0,
+ 0xB2, 0xB6, 0xF7, 0x92, 0x53, 0x43, 0x81, 0x2B, 0xF2, 0x01, 0x15, 0x49, 0x40, 0x69, 0xE5, 0xD2,
+ 0xA4, 0xB0, 0x9C, 0x5B, 0x08, 0x68, 0x17, 0x1D, 0xD8, 0xA6, 0x84, 0xB9, 0x2C, 0xAA, 0x1E, 0x2A,
+ 0xA5, 0x57, 0x4E, 0x6B, 0x16, 0x75, 0x8E, 0x0D, 0x5C, 0x29, 0xAF, 0x5D, 0x9F, 0x6A, 0x11, 0x37,
+ 0x56, 0x09, 0x0B, 0x51, 0x30, 0x19, 0x93, 0xFA, 0x67, 0x1A, 0x35, 0x06, 0x7F, 0xC6, 0x05, 0x32,
+ 0xF3, 0x5A, 0x3F, 0x50, 0xF1, 0x4B, 0xCD, 0x00, 0x95, 0xE7, 0x96, 0x9A, 0xA0, 0x0E, 0xC5, 0xBE 
+};
+
+//relocate this later on
+void apx_embedded_alias_test (dsd_opts * opts, dsd_state * state)
+{
+  uint64_t temp_a = 0x15900FE9060100B0; uint64_t temp_b = 0x5A; //72 bits, so break into segments
+  uint8_t lcw[72]; memset (lcw, 0, sizeof(lcw));
+  for (uint64_t i = 0; i < 64; i++)
+    lcw[i] = (temp_a >> (63-i)) & 1;
+  for (uint64_t i = 0; i < 8; i++)
+    lcw[i+64] = (temp_b >> (7-i)) & 1;
+  p25_lcw(opts, state, lcw, 0);
+
+  temp_a = 0x179001BBEE001C70; temp_b = 0x13;
+  memset (lcw, 0, sizeof(lcw));
+  for (uint64_t i = 0; i < 64; i++)
+    lcw[i] = (temp_a >> (63-i)) & 1;
+  for (uint64_t i = 0; i < 8; i++)
+    lcw[i+64] = (temp_b >> (7-i)) & 1;
+  p25_lcw(opts, state, lcw, 0);
+
+  temp_a = 0x179002B9CB7D5F2D; temp_b = 0x48;
+  memset (lcw, 0, sizeof(lcw));
+  for (uint64_t i = 0; i < 64; i++)
+    lcw[i] = (temp_a >> (63-i)) & 1;
+  for (uint64_t i = 0; i < 8; i++)
+    lcw[i+64] = (temp_b >> (7-i)) & 1;
+  p25_lcw(opts, state, lcw, 0);
+
+  temp_a = 0x179003B23695F7ED; temp_b = 0x49;
+  memset (lcw, 0, sizeof(lcw));
+  for (uint64_t i = 0; i < 64; i++)
+    lcw[i] = (temp_a >> (63-i)) & 1;
+  for (uint64_t i = 0; i < 8; i++)
+    lcw[i+64] = (temp_b >> (7-i)) & 1;
+  p25_lcw(opts, state, lcw, 0);
+
+  temp_a = 0x179004B9EA998F87; temp_b = 0x48;
+  memset (lcw, 0, sizeof(lcw));
+  for (uint64_t i = 0; i < 64; i++)
+    lcw[i] = (temp_a >> (63-i)) & 1;
+  for (uint64_t i = 0; i < 8; i++)
+    lcw[i+64] = (temp_b >> (7-i)) & 1;
+  p25_lcw(opts, state, lcw, 0);
+
+  temp_a = 0x179005BE6DAB167F; temp_b = 0xAC;
+  memset (lcw, 0, sizeof(lcw));
+  for (uint64_t i = 0; i < 64; i++)
+    lcw[i] = (temp_a >> (63-i)) & 1;
+  for (uint64_t i = 0; i < 8; i++)
+    lcw[i+64] = (temp_b >> (7-i)) & 1;
+  p25_lcw(opts, state, lcw, 0);
+
+  temp_a = 0x179006B15EC2C622; temp_b = 0x2E;
+  memset (lcw, 0, sizeof(lcw));
+  for (uint64_t i = 0; i < 64; i++)
+    lcw[i] = (temp_a >> (63-i)) & 1;
+  for (uint64_t i = 0; i < 8; i++)
+    lcw[i+64] = (temp_b >> (7-i)) & 1;
+  p25_lcw(opts, state, lcw, 0);
+}
+
+void apx_embedded_alias_header (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t lc_bits[])
+{
+  UNUSED(opts);
+  uint8_t ta_len = (uint8_t)ConvertBitIntoBytes(&lc_bits[32], 8); //len in blocks of associated talker alias
+  fprintf (stderr, " Block Len: %d;", ta_len);
+
+  //use dmr_pdu_sf for storage, store entire header (will be used to verify complete reception of full alias)
+  memset (state->dmr_pdu_sf[slot], 0, sizeof (state->dmr_pdu_sf[slot])); //reset storage for header and blocks
+  memcpy(state->dmr_pdu_sf[slot], lc_bits, 72*sizeof(uint8_t));
+
+}
+
+void apx_embedded_alias_blocks (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t lc_bits[])
+{
+  UNUSED(opts);
+  uint8_t bn = (uint8_t)ConvertBitIntoBytes(&lc_bits[16], 8); //current block number
+  uint8_t sn = (uint8_t)ConvertBitIntoBytes(&lc_bits[24], 4); //is a static value on all block sequences
+  uint8_t ta_len = (uint8_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][32], 8); //len in blocks pulled from stored header
+  uint16_t header = (uint16_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][0], 16); //header check, should be 0x1590
+  if (ta_len == 0 || header != 0x1590) //checkdown, make sure we have an up to date header for this with a good len value
+  {
+    fprintf (stderr, " Missing Header");
+    fprintf (stderr, " BN: %d/??;", bn);
+    fprintf (stderr, " SN: %X;", sn);
+    fprintf (stderr, " Partial: ");
+    for (uint8_t i = 7; i < 18; i++)
+      fprintf (stderr, "%0X", (uint8_t)ConvertBitIntoBytes(&lc_bits[0+(i*4)], 4));
+
+    //clear out now stale storage
+    memset (state->dmr_pdu_sf[slot], 0, sizeof (state->dmr_pdu_sf[slot]));
+  }
+
+  else //good len and header stored
+  {
+
+    //sanity check, bn cannot equal zero (this shouldn't happen, but bad decode could occur)
+    if (bn == 0) bn = 1;
+
+    fprintf (stderr, " SN: %X;", sn);
+    fprintf (stderr, " BN: %d/%d;", bn, ta_len);
+
+    //use dmr_pdu_sf for storage, store data relevant portion at ptr of (bn-1) * 44 + 72 offset for header
+    memcpy(state->dmr_pdu_sf[slot]+(((bn-1)*44)+72), lc_bits+28, 44*sizeof(uint8_t));
+
+    if (ta_len == bn) //this is the last block, proceed to decoding
+    {
+
+      //debug, let's look at byte, bit counts and see if we can find this in the completed dump
+      // fprintf (stderr, " Bits: %X; Bytes: %X; Mod: %d; ", bn*44, (bn*44)/8, (bn*44)%8); //the portion with 0100 is 8 off from 0108 (hex) bits
+
+      //debug, dump completed data set
+      // fprintf (stderr, "\n Full: ");
+      // for (uint8_t i = 0; i < ((bn*11)+18); i++) //double check on other bn values
+      //   fprintf (stderr, "%X", (uint8_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][0+(i*4)], 4));
+      // fprintf (stderr, "\n");
+
+      //extract fully qualified SUID
+      uint32_t wacn = (uint32_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][72], 20);
+      uint32_t sys  = (uint32_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][92], 12);
+      uint32_t rid  = (uint32_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][104], 24);
+
+      //print fully qualified SUID
+      fprintf (stderr, "\n WACN: %05X; SYS: %03X; RID: %d;", wacn, sys, rid);
+
+      //extract CRC
+      uint16_t crc_ext = (uint16_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][(72+(bn*44)-16)], 16);
+
+      //compute CRC
+      uint16_t crc_cmp = ComputeCrcCCITT16d(&state->dmr_pdu_sf[slot][72], (bn*44)-16);
+
+      //print comparison
+      fprintf (stderr, " CRC EXT: %04X CMP: %04X;", crc_ext, crc_cmp);
+      if (crc_ext != crc_cmp)
+        fprintf (stderr, " Error;");
+      else fprintf (stderr, " Okay;");
+
+      //debug, dump just the encoded alias portion
+      fprintf (stderr, "\n Encoded: ");
+      for (int16_t i = 32; i < ((bn*11)+18-4); i++) //double check on other bn values
+      {
+        // if ((i != 32) && ((i % 2) == 0))
+        //   fprintf (stderr, " ");
+        fprintf (stderr, "%X", (uint8_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][0+(i*4)], 4));
+      }
+
+      //start decoding the alias
+      if (crc_ext == crc_cmp)
+      {
+        //TODO: Figure this out
+        // int16_t ptr = 128; //starting point of encoded data from test vectors
+      }
+
+      //clear out now stale storage
+      memset (state->dmr_pdu_sf[slot], 0, sizeof (state->dmr_pdu_sf[slot]));
+
+    }
+  }
+}
