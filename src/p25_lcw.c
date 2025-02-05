@@ -297,6 +297,7 @@ void p25_lcw (dsd_opts * opts, dsd_state * state, uint8_t LCW_bits[], uint8_t ir
       {
         uint32_t tgt = (uint32_t)ConvertBitIntoBytes(&LCW_bits[48], 24); //can be individual, or all units (0xFFFFFF)
         fprintf (stderr, " Call Termination; TGT: %d;", tgt);
+        memset (state->dmr_pdu_sf[0], 0, sizeof (state->dmr_pdu_sf[0])); //reset storage for any talker alias (or other items)
         if (opts->p25_trunk == 1 && state->p25_cc_freq != 0 && opts->p25_is_tuned == 1)
         {
           
@@ -453,6 +454,19 @@ void p25_lcw (dsd_opts * opts, dsd_state * state, uint8_t LCW_bits[], uint8_t ir
     {
       uint32_t src = (uint32_t)ConvertBitIntoBytes(&LCW_bits[48], 24);
       fprintf (stderr, " MFID90 (Moto) Talker EOT; SRC: %d;", src);
+    }
+
+    //look for these in logs
+    else if (lc_mfid == 0x90 && lc_opcode == 0x15)
+    {
+      fprintf (stderr, " MFID90 (Moto) Talker Alias Header");
+      apx_embedded_alias_header (opts, state, 0, LCW_bits);
+    }
+
+    else if (lc_mfid == 0x90 && lc_opcode == 0x17)
+    {
+      fprintf (stderr, " MFID90 (Moto) Talker Alias Block");
+      apx_embedded_alias_blocks (opts, state, 0, LCW_bits);
     }
 
     //observed format value on Harris SNDCP data channel (Phase 2 CC to Phase 1 MPDU channel)
