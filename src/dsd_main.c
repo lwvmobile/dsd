@@ -1535,7 +1535,7 @@ if (opts->audio_out_type == 0)
 }
 
 //test P25 moto alias by loading in test vectors captured from a system and dumped on forum (see dsd_gps.c)
-// apx_embedded_alias_test(opts, state); //enable this to run test
+// apx_embedded_alias_test_phase1(opts, state); //enable this to run test
 
     while (!exitflag)
     {

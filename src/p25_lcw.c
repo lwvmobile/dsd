@@ -460,13 +460,13 @@ void p25_lcw (dsd_opts * opts, dsd_state * state, uint8_t LCW_bits[], uint8_t ir
     else if (lc_mfid == 0x90 && lc_opcode == 0x15)
     {
       fprintf (stderr, " MFID90 (Moto) Talker Alias Header");
-      apx_embedded_alias_header (opts, state, 0, LCW_bits);
+      apx_embedded_alias_header_phase1 (opts, state, 0, LCW_bits);
     }
 
     else if (lc_mfid == 0x90 && lc_opcode == 0x17)
     {
       fprintf (stderr, " MFID90 (Moto) Talker Alias Block");
-      apx_embedded_alias_blocks (opts, state, 0, LCW_bits);
+      apx_embedded_alias_blocks_phase1 (opts, state, 0, LCW_bits);
     }
 
     //observed format value on Harris SNDCP data channel (Phase 2 CC to Phase 1 MPDU channel)
