@@ -138,8 +138,10 @@ void apx_embedded_alias_blocks_phase1 (dsd_opts * opts, dsd_state * state, uint8
     if (ta_len == bn) //this is the last block, proceed to decoding
     {
 
+      int16_t num_bits = bn * 44; //number of relevant data bits total from all blocks (not including header)
+
       //pass to alias decoder
-      apx_embedded_alias_decode (opts, state, slot, bn, state->dmr_pdu_sf[slot]);
+      apx_embedded_alias_decode (opts, state, slot, num_bits, state->dmr_pdu_sf[slot]);
       
       //clear out now stale storage
       memset (state->dmr_pdu_sf[slot], 0, sizeof (state->dmr_pdu_sf[slot]));
@@ -176,7 +178,7 @@ void apx_embedded_alias_blocks_phase2 (dsd_opts * opts, dsd_state * state, uint8
     fprintf (stderr, " BN: %d/??;", bn);
     fprintf (stderr, " SN: %X;", sn);
     fprintf (stderr, " Partial: ");
-    for (uint8_t i = 7; i < 18; i++)
+    for (uint8_t i = 7; i < 18; i++) //Fix this value when samples arrive
       fprintf (stderr, "%0X", (uint8_t)ConvertBitIntoBytes(&lc_bits[0+(i*4)], 4));
 
     //clear out now stale storage
@@ -193,13 +195,16 @@ void apx_embedded_alias_blocks_phase2 (dsd_opts * opts, dsd_state * state, uint8
     fprintf (stderr, " BN: %d/%d;", bn, ta_len);
 
     //use dmr_pdu_sf for storage, store data relevant portion at ptr of (bn-1) * 44 + 72 offset for header
-    memcpy(state->dmr_pdu_sf[slot]+(((bn-1)*44)+72), lc_bits+28, 44*sizeof(uint8_t));
+    memcpy(state->dmr_pdu_sf[slot]+(((bn-1)*44)+72), lc_bits+28, 44*sizeof(uint8_t)); //Fix this value when samples arrive
 
     if (ta_len == bn) //this is the last block, proceed to decoding
     {
 
+      //Fix this value when samples arrive
+      int16_t num_bits = bn * 48; //number of relevant data bits total from all blocks (not including header)
+
       //pass to alias decoder
-      apx_embedded_alias_decode (opts, state, slot, bn, state->dmr_pdu_sf[slot]);
+      apx_embedded_alias_decode (opts, state, slot, num_bits, state->dmr_pdu_sf[slot]);
       
       //clear out now stale storage
       memset (state->dmr_pdu_sf[slot], 0, sizeof (state->dmr_pdu_sf[slot]));
@@ -208,7 +213,7 @@ void apx_embedded_alias_blocks_phase2 (dsd_opts * opts, dsd_state * state, uint8
   }
 }
 
-void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot, int bn, uint8_t * input)
+void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot, int16_t num_bits, uint8_t * input)
 {
 
   UNUSED(opts);
@@ -216,42 +221,45 @@ void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot
   UNUSED(slot);
 
   //debug, let's look at byte, bit counts and see if we can find this in the completed dump
-  // fprintf (stderr, " Bits: %X; Bytes: %X; Mod: %d; ", bn*44, (bn*44)/8, (bn*44)%8); //the portion with 0100 is 8 off from 0108 (hex) bits
+  // fprintf (stderr, " Bits: %X; Bytes: %X; Mod: %d; ", num_bits, num_bits/8, num_bits%8);
 
   //debug, dump completed data set
   // fprintf (stderr, "\n Full: ");
-  // for (uint8_t i = 0; i < ((bn*11)+18); i++) //double check on other bn values
+  // for (int16_t i = 0; i < (72+num_bits)/4; i++)
   //   fprintf (stderr, "%X", (uint8_t)ConvertBitIntoBytes(&input[0+(i*4)], 4));
-  // fprintf (stderr, "\n");
-
-  //extract fully qualified SUID
-  uint32_t wacn = (uint32_t)ConvertBitIntoBytes(&input[72], 20);
-  uint32_t sys  = (uint32_t)ConvertBitIntoBytes(&input[92], 12);
-  uint32_t rid  = (uint32_t)ConvertBitIntoBytes(&input[104], 24);
-
-  //print fully qualified SUID
-  fprintf (stderr, "\n WACN: %05X; SYS: %03X; RID: %d;", wacn, sys, rid);
 
   //extract CRC
-  uint16_t crc_ext = (uint16_t)ConvertBitIntoBytes(&input[(72+(bn*44)-16)], 16);
+  uint16_t crc_ext = (uint16_t)ConvertBitIntoBytes(&input[(72+num_bits-16)], 16);
 
   //compute CRC
-  uint16_t crc_cmp = ComputeCrcCCITT16d(&input[72], (bn*44)-16);
+  uint16_t crc_cmp = ComputeCrcCCITT16d(&input[72], num_bits-16);
 
   //print comparison
   // fprintf (stderr, " CRC EXT: %04X CMP: %04X;", crc_ext, crc_cmp);
   if (crc_ext != crc_cmp)
-    fprintf (stderr, " CRC Error;");
-  // else fprintf (stderr, " Okay;");
+    fprintf (stderr, " Alias CRC Error;");
+  // else fprintf (stderr, " Alias Okay;");
 
   //start decoding the alias
   if (crc_ext == crc_cmp)
   {
-    //WIP: Working, needs more samples to verify various len values
+
+    //extract fully qualified SUID
+    uint32_t wacn = (uint32_t)ConvertBitIntoBytes(&input[72], 20);
+    uint32_t sys  = (uint32_t)ConvertBitIntoBytes(&input[92], 12);
+    uint32_t rid  = (uint32_t)ConvertBitIntoBytes(&input[104], 24);
+
+    //print fully qualified SUID
+    fprintf (stderr, "\n FQ-SUID: %05X.%03X.%X (%d);", wacn, sys, rid, rid);
+
+    //WIP: Working, needs more samples to verify various num_bits values
     uint16_t ptr = 128; //starting point of encoded data from test vectors
     uint8_t encoded[200]; memset(encoded, 0, sizeof(encoded));
     uint8_t decoded[200]; memset(decoded, 0, sizeof(decoded));
-    uint16_t num_bytes = ((44*bn) / 8) - 9; //substract 2 CRC and 7 FQSUID 
+    uint16_t num_bytes = (num_bits / 8) - 9; //subtract 2 CRC and 7 FQSUID
+
+    //sanity check
+    if (num_bytes <= 0) num_bytes = 1;
 
     for (int16_t i = 0; i < num_bytes; i++)
     {
@@ -292,12 +300,12 @@ void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot
 
     // //debug, dump just the encoded alias portion
     // fprintf (stderr, "\n Encoded: ");
-    // for (int16_t i = 0; i < bytes; i++)
+    // for (int16_t i = 0; i < num_bytes; i++)
     //   fprintf (stderr, "%02X", encoded[i]);
 
     // //debug, dump the decoded payload as hex octets
     // fprintf (stderr, "\n Decoded: ");
-    // for (int16_t i = 0; i < bytes; i++)
+    // for (int16_t i = 0; i < num_bytes; i++)
     //   fprintf (stderr, "%02X", decoded[i]);
 
     //dump the decoded payload as long chars
@@ -311,9 +319,6 @@ void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot
     // state->dmr_embedded_gps[slot][199] = '\0'; //terminate string
 
   }
-
-  //clear out now stale storage
-  // memset (input, 0, sizeof (input)); //need to do this in calling function
 
 }
 
