@@ -448,6 +448,9 @@ noCarrier (dsd_opts * opts, dsd_state * state)
   memset(state->dmr_embedded_gps, 0, sizeof(state->dmr_embedded_gps));
   memset(state->dmr_lrrp_gps, 0, sizeof(state->dmr_lrrp_gps));
 
+  //Generic Talker Alias String
+  memset(state->generic_talker_alias, 0, sizeof(state->generic_talker_alias));
+
   // memset(state->active_channel, 0, sizeof(state->active_channel));
 
   //REMUS! multi-purpose call_string
@@ -1169,6 +1172,9 @@ initState (dsd_state * state)
   memset(state->dmr_embedded_gps, 0, sizeof(state->dmr_embedded_gps));
   memset(state->dmr_lrrp_gps, 0, sizeof(state->dmr_lrrp_gps));
   memset(state->active_channel, 0, sizeof(state->active_channel));
+
+  //Generic Talker Alias String
+  memset(state->generic_talker_alias, 0, sizeof(state->generic_talker_alias));
 
   //REMUS! multi-purpose call_string
   sprintf (state->call_string[0], "%s", "                     "); //21 spaces

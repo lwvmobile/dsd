@@ -3209,6 +3209,17 @@ ncursesPrinter (dsd_opts * opts, dsd_state * state)
       {
         printw ("Freq: %.06lf MHz", (double)state->p25_cc_freq/1000000);
       }
+
+      //load talker aliases here (Moto, Tait, Harris)
+      for (int16_t i = 0; i < state->group_tally; i++)
+      {
+        if (state->group_array[i].groupNumber == rd) //or state->lastsrc
+        {
+          sprintf (state->generic_talker_alias[0], "%s", state->group_array[i].groupName);
+          break;
+        }
+      }
+      
     }
     else if (lls == 35 || lls == 36) //P2
     {
@@ -3232,6 +3243,27 @@ ncursesPrinter (dsd_opts * opts, dsd_state * state)
           printw ("Freq: %.06lf MHz", (double)state->p25_cc_freq/1000000);
         }
       }
+
+      //load talker aliases here (Moto, Tait, Harris)
+      for (int16_t i = 0; i < state->group_tally; i++)
+      {
+        if (state->group_array[i].groupNumber == rd) //or state->lastsrc
+        {
+          sprintf (state->generic_talker_alias[0], "%s", state->group_array[i].groupName);
+          break;
+        }
+      }
+
+      //load talker aliases here (Moto, Tait, Harris)
+      for (int16_t i = 0; i < state->group_tally; i++)
+      {
+        if (state->group_array[i].groupNumber == rdR) //or state->lastsrc
+        {
+          sprintf (state->generic_talker_alias[1], "%s", state->group_array[i].groupName);
+          break;
+        }
+      }
+
     }
 
     printw ("\n");
@@ -3393,6 +3425,9 @@ ncursesPrinter (dsd_opts * opts, dsd_state * state)
           printw ("%s", state->dmr_alias_block_segment[0][i][j]);
         }
       }
+
+      //Generic Talker Alias String
+      printw ("%s", state->generic_talker_alias[0]);
 
       attroff(COLOR_PAIR(5));
       if (state->carrier == 1)
@@ -3586,6 +3621,9 @@ ncursesPrinter (dsd_opts * opts, dsd_state * state)
             printw ("%s", state->dmr_alias_block_segment[1][i][j]);
           }
         }
+
+        //Generic Talker Alias String
+        printw ("%s", state->generic_talker_alias[1]);
 
         attroff(COLOR_PAIR(5));
         if (state->carrier == 1)

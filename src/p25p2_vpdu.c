@@ -1753,6 +1753,7 @@ void process_MAC_VPDU(dsd_opts * opts, dsd_state * state, int type, unsigned lon
 			if (len > 24)
 				len = 24; //should never exceed this len, but just in case it does
 
+			//(TODO: Move Alias to dsd_alias.c)
 			//Harris "Talker" Alias -- Not always in the SACCH, has been seen in the FACCH as well (before MAC_PTT)
 			if (MAC[1+len_a] == 0xA8) //1010 1000 (so, its opcode is 0x28, with the b = 0b10 value for manufacturer message?)
 			{
@@ -1763,12 +1764,17 @@ void process_MAC_VPDU(dsd_opts * opts, dsd_state * state, int type, unsigned lon
 						fprintf (stderr, "%c", (char)MAC[i+len_a]);
 					else fprintf (stderr, " ");
 
-					if ( (MAC[i+len_a] > 0x19) && (MAC[i+len_a] < 0x7F) )
-						state->dmr_alias_block_segment[slot][0][k/4][k%4] = MAC[i+len_a];
-					else state->dmr_alias_block_segment[slot][0][k/4][k%4] = 0x20;
+					//disabled, since we load this to the generic_talker_alias string now
+					// if ( (MAC[i+len_a] > 0x19) && (MAC[i+len_a] < 0x7F) )
+					// 	state->dmr_alias_block_segment[slot][0][k/4][k%4] = MAC[i+len_a];
+					// else state->dmr_alias_block_segment[slot][0][k/4][k%4] = 0x20;
 
-					if ( (MAC[i+len_a] > 0x19) && (MAC[i+len_a] < 0x7F) )
+					if (MAC[i+len_a] == 0x2C) //remove a comma if it exists, change it to a 0x2E dot
+						ttemp[k] = 0x2E;
+					else if ( (MAC[i+len_a] > 0x19) && (MAC[i+len_a] < 0x7F) )
 						ttemp[k] = MAC[i+len_a];
+					else if (MAC[i+len_a] != 0)
+						ttemp[k] = 0x20; //space
 
 					k++;
 				}

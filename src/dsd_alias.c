@@ -31,7 +31,7 @@ uint8_t moto_alias_lut[256] = {
 void apx_embedded_alias_test_phase1 (dsd_opts * opts, dsd_state * state)
 {
 
-  uint64_t temp_a = 0x15900FE9060100B0; uint64_t temp_b = 0x5A; //72 bits, so break into segments
+  uint64_t temp_a = 0x15902D2806010005; uint64_t temp_b = 0xDE; //72 bits, so break into segments
   uint8_t lcw[72]; memset (lcw, 0, sizeof(lcw));
   for (uint64_t i = 0; i < 64; i++)
     lcw[i] = (temp_a >> (63-i)) & 1;
@@ -39,7 +39,7 @@ void apx_embedded_alias_test_phase1 (dsd_opts * opts, dsd_state * state)
     lcw[i+64] = (temp_b >> (7-i)) & 1;
   p25_lcw(opts, state, lcw, 0);
 
-  temp_a = 0x179001BBEE001C70; temp_b = 0x13;
+  temp_a = 0x1790010BEE0740F0; temp_b = 0x4E;
   memset (lcw, 0, sizeof(lcw));
   for (uint64_t i = 0; i < 64; i++)
     lcw[i] = (temp_a >> (63-i)) & 1;
@@ -47,7 +47,7 @@ void apx_embedded_alias_test_phase1 (dsd_opts * opts, dsd_state * state)
     lcw[i+64] = (temp_b >> (7-i)) & 1;
   p25_lcw(opts, state, lcw, 0);
 
-  temp_a = 0x179002B9CB7D5F2D; temp_b = 0x48;
+  temp_a = 0x17900200DD2D2168; temp_b = 0x1A;
   memset (lcw, 0, sizeof(lcw));
   for (uint64_t i = 0; i < 64; i++)
     lcw[i] = (temp_a >> (63-i)) & 1;
@@ -55,7 +55,7 @@ void apx_embedded_alias_test_phase1 (dsd_opts * opts, dsd_state * state)
     lcw[i+64] = (temp_b >> (7-i)) & 1;
   p25_lcw(opts, state, lcw, 0);
 
-  temp_a = 0x179003B23695F7ED; temp_b = 0x49;
+  temp_a = 0x17900301B52FFBFB; temp_b = 0xFE;
   memset (lcw, 0, sizeof(lcw));
   for (uint64_t i = 0; i < 64; i++)
     lcw[i] = (temp_a >> (63-i)) & 1;
@@ -63,7 +63,7 @@ void apx_embedded_alias_test_phase1 (dsd_opts * opts, dsd_state * state)
     lcw[i+64] = (temp_b >> (7-i)) & 1;
   p25_lcw(opts, state, lcw, 0);
 
-  temp_a = 0x179004B9EA998F87; temp_b = 0x48;
+  temp_a = 0x1790040E53FE86BE; temp_b = 0xF7;
   memset (lcw, 0, sizeof(lcw));
   for (uint64_t i = 0; i < 64; i++)
     lcw[i] = (temp_a >> (63-i)) & 1;
@@ -71,7 +71,7 @@ void apx_embedded_alias_test_phase1 (dsd_opts * opts, dsd_state * state)
     lcw[i+64] = (temp_b >> (7-i)) & 1;
   p25_lcw(opts, state, lcw, 0);
 
-  temp_a = 0x179005BE6DAB167F; temp_b = 0xAC;
+  temp_a = 0x17900508FD5AB910; temp_b = 0xB2;
   memset (lcw, 0, sizeof(lcw));
   for (uint64_t i = 0; i < 64; i++)
     lcw[i] = (temp_a >> (63-i)) & 1;
@@ -79,7 +79,7 @@ void apx_embedded_alias_test_phase1 (dsd_opts * opts, dsd_state * state)
     lcw[i+64] = (temp_b >> (7-i)) & 1;
   p25_lcw(opts, state, lcw, 0);
 
-  temp_a = 0x179006B15EC2C622; temp_b = 0x2E;
+  temp_a = 0x1790060376F9D800; temp_b = 0x00;
   memset (lcw, 0, sizeof(lcw));
   for (uint64_t i = 0; i < 64; i++)
     lcw[i] = (temp_a >> (63-i)) & 1;
@@ -140,12 +140,11 @@ void apx_embedded_alias_blocks_phase1 (dsd_opts * opts, dsd_state * state, uint8
     if (ta_len == bn) //this is the last block, proceed to decoding
     {
 
-      //WIP: Need a way to calculate variable len bits determined by a bit counter or something
-      // int16_t num_bits = bn * 44; //number of relevant data bits total from all blocks (not including header)
+      //Calculate variable len bits determined by non-zero octets
       int16_t num_bits = 56; //starting value is the static bit count on the fqsuid
 
       // //evaluate the storage and determine how many octets/bits are present at this point (fall back to this if needed)
-      // for (int16_t i = 0; i < 31; i++) //end point? BEE00 doesn't trip this since it is 0xBE 0xE0 0x0X, but other things might, may want to start after the fqsuid
+      // for (int16_t i = 0; i < 368; i++) //(3072-128)/8
       // {
       //   uint8_t byte = (uint8_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][72+56+(i*8)], 8);
       //   if (byte == 0)
@@ -155,7 +154,7 @@ void apx_embedded_alias_blocks_phase1 (dsd_opts * opts, dsd_state * state, uint8
       // }
 
       //evaluate the storage and determine how many octets/bits are present at this point (expanded to two octets each, CRC with a 00xx pattern failed this)
-      for (int16_t i = 0; i < 31; i++) //end point? BEE00 doesn't trip this since it is 0xBE 0xE0 0x0X, but other things might, may want to start after the fqsuid
+      for (int16_t i = 0; i < 184; i++) //(3072-128)/16
       {
         uint16_t bytes = (uint16_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][72+56+(i*16)], 16);
         if (bytes == 0)
@@ -205,7 +204,7 @@ void apx_embedded_alias_header_phase2 (dsd_opts * opts, dsd_state * state, uint8
 
 void apx_embedded_alias_blocks_phase2 (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t * lc_bits)
 {
-  //WIP: Adjust values as needed for MAC vPDU Messages
+  
   UNUSED(opts);
   int16_t rel_bits = 100;  //number of relevant bits in each block
   int16_t rel_st   = 36;   //start of relevant bits in this block
@@ -248,12 +247,11 @@ void apx_embedded_alias_blocks_phase2 (dsd_opts * opts, dsd_state * state, uint8
     if (ta_len == bn) //this is the last block, proceed to decoding
     {
 
-      //WIP: Need a way to calculate variable len bits determined by a bit counter or something
-      // int16_t num_bits = (bn * rel_bits) + 56; //number of relevant data bits total from all blocks (including header fqsuid stub)
+      //Calculate variable len bits determined by non-zero octets
       int16_t num_bits = 56; //starting value is the static bit count on the fqsuid
 
       // //evaluate the storage and determine how many octets/bits are present at this point (fall back to this if needed)
-      // for (int16_t i = 0; i < 31; i++) //end point? BEE00 doesn't trip this since it is 0xBE 0xE0 0x0X, but other things might, may want to start after the fqsuid
+      // for (int16_t i = 0; i < 368; i++) //(3072-128)/8
       // {
       //   uint8_t byte = (uint8_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][72+56+(i*8)], 8);
       //   if (byte == 0)
@@ -263,7 +261,7 @@ void apx_embedded_alias_blocks_phase2 (dsd_opts * opts, dsd_state * state, uint8
       // }
 
       //evaluate the storage and determine how many octets/bits are present at this point (expanded to two octets each, CRC with a 00xx pattern failed this)
-      for (int16_t i = 0; i < 31; i++) //end point? BEE00 doesn't trip this since it is 0xBE 0xE0 0x0X, but other things might, may want to start after the fqsuid
+      for (int16_t i = 0; i < 184; i++) //(3072-128)/16
       {
         uint16_t bytes = (uint16_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][72+56+(i*16)], 16);
         if (bytes == 0)
@@ -319,7 +317,7 @@ void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot
     fprintf (stderr, "\n FQ-SUID: %05X.%03X.%06X (%d);", wacn, sys, rid, rid);
 
     //WIP: Working, needs more samples to verify various num_bits values
-    uint16_t ptr = 128; //starting point of encoded data from test vectors
+    uint16_t ptr = 128;   //starting point of encoded alias
     uint8_t encoded[200]; memset(encoded, 0, sizeof(encoded));
     uint8_t decoded[200]; memset(decoded, 0, sizeof(decoded));
     uint16_t num_bytes = (num_bits / 8) - 9; //subtract 2 CRC and 7 FQSUID
@@ -380,17 +378,65 @@ void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot
     for (int16_t i = 0; i < num_bytes/2; i++)
       fprintf (stderr, "%lc", ((decoded[(i*2)+0])<<8) | ((decoded[(i*2)+1])<<0) );
 
-    //For Ncurses Display (needs to be testing on real samples first to make sure this is setup right, %s doesn't seem to work well with utf16)
-    // memcpy (state->dmr_embedded_gps[slot], decoded, num_bytes*sizeof(uint8_t));
-    // state->dmr_embedded_gps[slot][199] = '\0'; //terminate string
+    apx_embedded_alias_dump (opts, state, num_bytes, input, decoded);
 
-    //For Ncurses Display (kind of a hack, but will only work if the UTF16 chars are just roman alphanumerical UTF8 compatible)
-    for (int16_t i = 0; i < num_bytes/2; i++)
-      state->dmr_embedded_gps[slot][i] = decoded[(i*2)+1];
+  }
 
-    //TODO: Do this like the Harris Talker Alias so it 
-    //can read/write to the files and not randomly reset 
-    //and flicker each time its decoded
+}
+
+void apx_embedded_alias_dump (dsd_opts * opts, dsd_state * state, uint16_t num_bytes, uint8_t * input, uint8_t * decoded)
+{
+
+  char str[50]; memset(str, 0, sizeof(str));
+
+  //check num_bytes, if greter than 100, then set to 100
+  if (num_bytes >= 98) num_bytes = 98;
+
+  for (int16_t i = 0; i < num_bytes/2; i++)
+  {
+    if (decoded[(i*2)+1] == 0x2C) //remove a comma if it exists, change it to a 0x2E dot
+      str[i] = 0x2E;
+    else if (decoded[(i*2)+1] > 0x1F && decoded[(i*2)+1] < 0x7F) //may not need or use this restriction
+      str[i] = decoded[(i*2)+1];
+    else str[i] = 0x20; //space
+  }
+
+  //flag to indicate this already exists in import or group struct
+  uint8_t wr = 0;
+
+  //fully qualified SUID
+  uint32_t wacn = (uint32_t)ConvertBitIntoBytes(&input[72], 20);
+  uint32_t sys  = (uint32_t)ConvertBitIntoBytes(&input[92], 12);
+  uint32_t rid  = (uint32_t)ConvertBitIntoBytes(&input[104], 24);
+
+  for (int16_t i = 0; i < state->group_tally; i++)
+  {
+    if (state->group_array[i].groupNumber == rid)
+    {
+      wr = 1; //already in there, so no need to assign it
+      break;
+    }
+  }
+
+  if (wr == 0) //not already in there, so save it there now
+  {
+    state->group_array[state->group_tally].groupNumber = rid;
+    sprintf (state->group_array[state->group_tally].groupMode, "%s", "D");
+    sprintf (state->group_array[state->group_tally].groupName, "%s", str);
+    state->group_tally++;
+
+    //if we have an opened group file, let's write what info we found into it
+    if (opts->group_in_file[0] != 0) //file is available
+    {
+      FILE * pFile; //file pointer
+      //open file by name that is supplied in the ncurses terminal, or cli
+      pFile = fopen (opts->group_in_file, "a");
+      fprintf (pFile, "%d,D,", rid); //may want to not use this one
+      fprintf (pFile, "%s", str); //for whatever reason, Cygwin likes the string seperate (overflow on pFile?)
+      fprintf (pFile, ",FQS:%05X.%03X.%06X(%d),RFSS:%lld,SITE:%lld\n", wacn, sys, rid, rid, state->p2_rfssid, state->p2_siteid);
+      fclose (pFile);
+    }
+
   }
 
 }

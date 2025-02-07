@@ -480,7 +480,7 @@ void p25_lcw (dsd_opts * opts, dsd_state * state, uint8_t LCW_bits[], uint8_t ir
       fprintf (stderr, " MFIDA4 (Harris) Data Channel; SRC: %d; TGT: %d;", src, tgt);
     }
 
-    //observed on Tait conventional / uplink
+    //observed on Tait conventional / uplink (TODO: Move all this to dsd_alias.c)
     else if (lc_mfid == 0xD8 && lc_format == 0x00)
     {
       fprintf (stderr, " MFID D8 (Tait) Talker Alias: ");
@@ -490,10 +490,51 @@ void p25_lcw (dsd_opts * opts, dsd_state * state, uint8_t LCW_bits[], uint8_t ir
       {
         alias[i] = (uint8_t)ConvertBitIntoBytes(&LCW_bits[16+(i*7)], 7);
         fprintf (stderr, "%c", alias[i]);
+        if (alias[i] == 0x2C) //change a comma to a dot
+          alias[i] = 0x2E;
+        else if (alias[i] < 0x20) //change any garble / control chars to a space
+          alias[i] = 0x20;
       }
 
-      //For Ncurses Display; TODO: cleanup alias handling
-      sprintf (state->dmr_embedded_gps[0], "%c%c%c%c%c%c%c%c", alias[0], alias[1], alias[2], alias[3], alias[4], alias[5], alias[6], alias[7]);
+      //flag to indicate this already exists in import or group struct
+      uint8_t wr = 0;
+      uint32_t rid  = state->lastsrc;
+
+      if (rid != 0)
+      {
+        for (int16_t i = 0; i < state->group_tally; i++)
+        {
+          if (state->group_array[i].groupNumber == rid)
+          {
+            wr = 1; //already in there, so no need to assign it
+            break;
+          }
+        }
+
+        if (wr == 0) //not already in there, so save it there now
+        {
+          state->group_array[state->group_tally].groupNumber = rid;
+          sprintf (state->group_array[state->group_tally].groupMode, "%s", "D");
+          sprintf (state->group_array[state->group_tally].groupName, "%s", alias);
+          state->group_tally++;
+
+          //if we have an opened group file, let's write what info we found into it
+          if (opts->group_in_file[0] != 0) //file is available
+          {
+            FILE * pFile; //file pointer
+            //open file by name that is supplied in the ncurses terminal, or cli
+            pFile = fopen (opts->group_in_file, "a");
+            fprintf (pFile, "%d,D,", rid); //may want to not use this one
+            fprintf (pFile, "%s", alias); //for whatever reason, Cygwin likes the string seperate (overflow on pFile?)
+            // fprintf (pFile, ",FQS: %05X.%03X.%06X (%d),RFSS:%lld,SITE:%lld\n", wacn, sys, rid, rid, state->p2_rfssid, state->p2_siteid);
+            fprintf (pFile, "%s", ",Tait Talker Alias\n");
+            fclose (pFile);
+          }
+
+        }
+
+      }
+
     }
 
     //not a duplicate, this one will print if not MFID 0 or 1

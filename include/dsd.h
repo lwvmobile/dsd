@@ -680,6 +680,8 @@ typedef struct
   char call_string[2][200]; //string for call information
   char active_channel[31][200]; //string for storing and displaying active trunking channels
 
+  //Generic Talker Alias String
+  char generic_talker_alias[2][100];
 
   dPMRVoiceFS2Frame_t dPMRVoiceFS2Frame;
 
@@ -1262,6 +1264,7 @@ void apx_embedded_alias_header_phase2 (dsd_opts * opts, dsd_state * state, uint8
 void apx_embedded_alias_blocks_phase1 (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t * lc_bits);
 void apx_embedded_alias_blocks_phase2 (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t * lc_bits);
 void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot, int16_t num_bits, uint8_t * input);
+void apx_embedded_alias_dump (dsd_opts * opts, dsd_state * state, uint16_t num_bytes, uint8_t * input, uint8_t * decoded);
 void dmr_embedded_gps (dsd_opts * opts, dsd_state * state, uint8_t lc_bits[]);
 void apx_embedded_gps (dsd_opts * opts, dsd_state * state, uint8_t lc_bits[]);
 void lip_protocol_decoder (dsd_opts * opts, dsd_state * state, uint8_t * input);
