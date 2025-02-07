@@ -8,7 +8,7 @@
 
 #include "dsd.h"
 
-//Motorola P25 OTA Alias Decoding ripped/demistified from Ilya Smirnov's SDRTrunk Voodoo Code
+//Motorola P25 OTA Alias Decoding ripped/demystified from Ilya Smirnov's SDRTrunk Voodoo Code
 uint8_t moto_alias_lut[256] = { 
   0xD2, 0xF6, 0xD4, 0x2B, 0x63, 0x49, 0x94, 0x5E, 0xA7, 0x5C, 0x70, 0x69, 0xF7, 0x08, 0xB1, 0x7D,
   0x38, 0xCF, 0xCC, 0xD8, 0x51, 0x8F, 0xD5, 0x93, 0x6A, 0xF3, 0xEF, 0x7E, 0xFB, 0x64, 0xF4, 0x35,
@@ -93,7 +93,9 @@ void apx_embedded_alias_header_phase1 (dsd_opts * opts, dsd_state * state, uint8
 
   UNUSED(opts);
   uint8_t ta_len = (uint8_t)ConvertBitIntoBytes(&lc_bits[32], 8); //len in blocks of associated talker alias
-  fprintf (stderr, " Block Len: %d;", ta_len);
+  uint8_t sn = (uint8_t)ConvertBitIntoBytes(&lc_bits[56], 4);
+  fprintf (stderr, " SN: %X;", sn);
+  fprintf (stderr, " BN: 0/%d;", ta_len);
 
   //use dmr_pdu_sf for storage, store entire header (will be used to verify complete reception of full alias)
   memset (state->dmr_pdu_sf[slot], 0, sizeof (state->dmr_pdu_sf[slot])); //reset storage for header and blocks
@@ -138,13 +140,35 @@ void apx_embedded_alias_blocks_phase1 (dsd_opts * opts, dsd_state * state, uint8
     if (ta_len == bn) //this is the last block, proceed to decoding
     {
 
-      int16_t num_bits = bn * 44; //number of relevant data bits total from all blocks (not including header)
+      //WIP: Need a way to calculate variable len bits determined by a bit counter or something
+      // int16_t num_bits = bn * 44; //number of relevant data bits total from all blocks (not including header)
+      int16_t num_bits = 56; //starting value is the static bit count on the fqsuid
+
+      // //evaluate the storage and determine how many octets/bits are present at this point (fall back to this if needed)
+      // for (int16_t i = 0; i < 31; i++) //end point? BEE00 doesn't trip this since it is 0xBE 0xE0 0x0X, but other things might, may want to start after the fqsuid
+      // {
+      //   uint8_t byte = (uint8_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][72+56+(i*8)], 8);
+      //   if (byte == 0)
+      //     break;
+      //   else
+      //     num_bits += 8;
+      // }
+
+      //evaluate the storage and determine how many octets/bits are present at this point (expanded to two octets each, CRC with a 00xx pattern failed this)
+      for (int16_t i = 0; i < 31; i++) //end point? BEE00 doesn't trip this since it is 0xBE 0xE0 0x0X, but other things might, may want to start after the fqsuid
+      {
+        uint16_t bytes = (uint16_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][72+56+(i*16)], 16);
+        if (bytes == 0)
+          break;
+        else
+          num_bits += 16;
+      }
 
       //pass to alias decoder
       apx_embedded_alias_decode (opts, state, slot, num_bits, state->dmr_pdu_sf[slot]);
       
       //clear out now stale storage
-      memset (state->dmr_pdu_sf[slot], 0, sizeof (state->dmr_pdu_sf[slot]));
+      memset (state->dmr_pdu_sf[slot], 0, sizeof(state->dmr_pdu_sf[slot]));
 
     }
   }
@@ -152,37 +176,56 @@ void apx_embedded_alias_blocks_phase1 (dsd_opts * opts, dsd_state * state, uint8
 
 void apx_embedded_alias_header_phase2 (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t * lc_bits)
 {
-  //TODO: Adjust values as needed for MAC vPDU Messages
+  
   UNUSED(opts);
-  uint8_t ta_len = (uint8_t)ConvertBitIntoBytes(&lc_bits[32], 8); //adjust when samples arrive with this in them
-  fprintf (stderr, " Block Len: %d;", ta_len);
+  uint8_t ta_len = (uint8_t)ConvertBitIntoBytes(&lc_bits[40], 8);
+  uint8_t sn = (uint8_t)ConvertBitIntoBytes(&lc_bits[64], 4);
+  uint8_t bn = (uint8_t)ConvertBitIntoBytes(&lc_bits[56], 8);
+  fprintf (stderr, " SN: %X;", sn); //NOTE: vPDU header is also a partial block, and has a block num and SN value in it
+  fprintf (stderr, " BN: %d/%d;", bn, ta_len);
+
+  //bit array to rearrange input lc_bits from phase 2 mac to match the phase 1 header and block handling
+  uint8_t bits[136]; memset(bits, 0, sizeof(bits));
+  memcpy (bits, lc_bits, 2*8*sizeof(uint8_t));         //header 0x9190
+  memcpy (bits+16, lc_bits+24, 4*8*sizeof(uint8_t)); //BN, SN, etc
+  memcpy (bits+56, lc_bits+56, 10*8*sizeof(uint8_t)); //adding 8 bits of extra padding here
+
+  int16_t alias_st = 136; //start of the encoded alias (the copied size of this header, basically)
+
+  //debug, dump header arranged at this end
+  // fprintf (stderr, " Header: ");
+  // for (int16_t i = 0; i < alias_st/8; i++) //double check and adjust
+  //   fprintf (stderr, "%02X", (uint8_t)ConvertBitIntoBytes(&bits[0+(i*8)], 8));
 
   //use dmr_pdu_sf for storage, store entire header (will be used to verify complete reception of full alias)
   memset (state->dmr_pdu_sf[slot], 0, sizeof (state->dmr_pdu_sf[slot])); //reset storage for header and blocks
-  memcpy (state->dmr_pdu_sf[slot], lc_bits, 72*sizeof(uint8_t));
+  memcpy (state->dmr_pdu_sf[slot], bits, alias_st*sizeof(uint8_t)); //this header block has 128 bits of relevant data (through the fqsuid)
 
 }
 
 void apx_embedded_alias_blocks_phase2 (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t * lc_bits)
 {
-  //TODO: Adjust values as needed for MAC vPDU Messages
+  //WIP: Adjust values as needed for MAC vPDU Messages
   UNUSED(opts);
-  uint8_t bn = (uint8_t)ConvertBitIntoBytes(&lc_bits[16], 8); //current block number
-  uint8_t sn = (uint8_t)ConvertBitIntoBytes(&lc_bits[24], 4); //is a static value on all block sequences
+  int16_t rel_bits = 100;  //number of relevant bits in each block
+  int16_t rel_st   = 36;   //start of relevant bits in this block
+  int16_t alias_st = 136;  //start of the encoded alias
+  uint8_t bn = (uint8_t)ConvertBitIntoBytes(&lc_bits[24], 8); //current block number
+  uint8_t sn = (uint8_t)ConvertBitIntoBytes(&lc_bits[32], 4); //is a static value on all block sequences
   uint8_t ta_len = (uint8_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][32], 8); //len in blocks pulled from stored header
-  uint16_t header = (uint16_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][0], 16); //header check, should be 0x1590
+  uint16_t header = (uint16_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][0], 16); //header check, should be 0x9190
 
-  if (ta_len == 0 || header != 0x1590) //checkdown, make sure we have an up to date header for this with a good len value
+  if (ta_len == 0 || header != 0x9190)
   {
     fprintf (stderr, " Missing Header");
     fprintf (stderr, " BN: %d/??;", bn);
     fprintf (stderr, " SN: %X;", sn);
     fprintf (stderr, " Partial: ");
-    for (uint8_t i = 7; i < 18; i++) //Fix this value when samples arrive
+    for (uint8_t i = 9; i < 32; i++) //double check and adjust
       fprintf (stderr, "%0X", (uint8_t)ConvertBitIntoBytes(&lc_bits[0+(i*4)], 4));
 
     //clear out now stale storage
-    memset (state->dmr_pdu_sf[slot], 0, sizeof (state->dmr_pdu_sf[slot]));
+    memset (state->dmr_pdu_sf[slot], 0, sizeof(state->dmr_pdu_sf[slot]));
   }
 
   else //good len and header stored
@@ -194,14 +237,40 @@ void apx_embedded_alias_blocks_phase2 (dsd_opts * opts, dsd_state * state, uint8
     fprintf (stderr, " SN: %X;", sn);
     fprintf (stderr, " BN: %d/%d;", bn, ta_len);
 
-    //use dmr_pdu_sf for storage, store data relevant portion at ptr of (bn-1) * 44 + 72 offset for header
-    memcpy(state->dmr_pdu_sf[slot]+(((bn-1)*44)+72), lc_bits+28, 44*sizeof(uint8_t)); //Fix this value when samples arrive
+    //use dmr_pdu_sf for storage, store data relevant portion at ptr calculated below
+    memcpy(state->dmr_pdu_sf[slot]+(alias_st+((bn-1)*rel_bits)), lc_bits+rel_st, rel_bits*sizeof(uint8_t)); //Fix this value when samples arrive
+
+    //debug, dump accumulated data at this end
+    // fprintf (stderr, " Accumulated: ");
+    // for (int16_t i = 0; i < (alias_st+(rel_bits*bn))/8; i++) //double check and adjust
+    //   fprintf (stderr, "%02X", (uint8_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][0+(i*8)], 8));
 
     if (ta_len == bn) //this is the last block, proceed to decoding
     {
 
-      //Fix this value when samples arrive
-      int16_t num_bits = bn * 48; //number of relevant data bits total from all blocks (not including header)
+      //WIP: Need a way to calculate variable len bits determined by a bit counter or something
+      // int16_t num_bits = (bn * rel_bits) + 56; //number of relevant data bits total from all blocks (including header fqsuid stub)
+      int16_t num_bits = 56; //starting value is the static bit count on the fqsuid
+
+      // //evaluate the storage and determine how many octets/bits are present at this point (fall back to this if needed)
+      // for (int16_t i = 0; i < 31; i++) //end point? BEE00 doesn't trip this since it is 0xBE 0xE0 0x0X, but other things might, may want to start after the fqsuid
+      // {
+      //   uint8_t byte = (uint8_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][72+56+(i*8)], 8);
+      //   if (byte == 0)
+      //     break;
+      //   else
+      //     num_bits += 8;
+      // }
+
+      //evaluate the storage and determine how many octets/bits are present at this point (expanded to two octets each, CRC with a 00xx pattern failed this)
+      for (int16_t i = 0; i < 31; i++) //end point? BEE00 doesn't trip this since it is 0xBE 0xE0 0x0X, but other things might, may want to start after the fqsuid
+      {
+        uint16_t bytes = (uint16_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[slot][72+56+(i*16)], 16);
+        if (bytes == 0)
+          break;
+        else
+          num_bits += 16;
+      }
 
       //pass to alias decoder
       apx_embedded_alias_decode (opts, state, slot, num_bits, state->dmr_pdu_sf[slot]);
@@ -219,9 +288,6 @@ void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot
   UNUSED(opts);
   UNUSED(state);
   UNUSED(slot);
-
-  //debug, let's look at byte, bit counts and see if we can find this in the completed dump
-  // fprintf (stderr, " Bits: %X; Bytes: %X; Mod: %d; ", num_bits, num_bits/8, num_bits%8);
 
   //debug, dump completed data set
   // fprintf (stderr, "\n Full: ");
@@ -250,7 +316,7 @@ void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot
     uint32_t rid  = (uint32_t)ConvertBitIntoBytes(&input[104], 24);
 
     //print fully qualified SUID
-    fprintf (stderr, "\n FQ-SUID: %05X.%03X.%X (%d);", wacn, sys, rid, rid);
+    fprintf (stderr, "\n FQ-SUID: %05X.%03X.%06X (%d);", wacn, sys, rid, rid);
 
     //WIP: Working, needs more samples to verify various num_bits values
     uint16_t ptr = 128; //starting point of encoded data from test vectors
@@ -314,10 +380,17 @@ void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot
     for (int16_t i = 0; i < num_bytes/2; i++)
       fprintf (stderr, "%lc", ((decoded[(i*2)+0])<<8) | ((decoded[(i*2)+1])<<0) );
 
-    //For Ncurses Display (needs to be testing on real samples first to make sure this is setup right)
-    // memcpy (state->dmr_embedded_gps[slot], decoded, bytes*sizeof(uint8_t));
+    //For Ncurses Display (needs to be testing on real samples first to make sure this is setup right, %s doesn't seem to work well with utf16)
+    // memcpy (state->dmr_embedded_gps[slot], decoded, num_bytes*sizeof(uint8_t));
     // state->dmr_embedded_gps[slot][199] = '\0'; //terminate string
 
+    //For Ncurses Display (kind of a hack, but will only work if the UTF16 chars are just roman alphanumerical UTF8 compatible)
+    for (int16_t i = 0; i < num_bytes/2; i++)
+      state->dmr_embedded_gps[slot][i] = decoded[(i*2)+1];
+
+    //TODO: Do this like the Harris Talker Alias so it 
+    //can read/write to the files and not randomly reset 
+    //and flicker each time its decoded
   }
 
 }

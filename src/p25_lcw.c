@@ -465,7 +465,7 @@ void p25_lcw (dsd_opts * opts, dsd_state * state, uint8_t LCW_bits[], uint8_t ir
 
     else if (lc_mfid == 0x90 && lc_opcode == 0x17)
     {
-      fprintf (stderr, " MFID90 (Moto) Talker Alias Block");
+      fprintf (stderr, " MFID90 (Moto) Talker Alias Blocks");
       apx_embedded_alias_blocks_phase1 (opts, state, 0, LCW_bits);
     }
 

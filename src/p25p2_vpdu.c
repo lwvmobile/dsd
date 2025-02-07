@@ -15,11 +15,11 @@ static const uint8_t mac_msg_len[256] = {
 	 0, 14, 15,  0,  0, 15,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, //2F
 	 5,  7,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, //3F 
 	 9,  7,  9,  0,  9,  8,  9,  0, 10, 10,  9,  0, 10,  0,  0,  0, //4F
-	 0,  0,  0,  0,  9,  7,  0,  0, 10,  0,  7,  9, 10,  8, 14,  9, //5F (5B was 0, 5F was 7, changed both to 9 to match LCW, but that may not be completely accurate)
+	 0,  0,  0,  0,  9,  7,  0,  0, 10,  0,  7,  0, 10,  8, 14,  7, //5F //reverted previous changes here
 	 9,  9,  0,  0,  9,  0,  0,  9, 10,  0,  7, 10, 10,  7,  0,  9, //6F
 	 9, 29,  9,  9,  9,  9, 10, 13,  9,  9,  9, 11,  9,  9,  0,  0, //7F
 	 8,  18,  0,  7, 11,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  7, //8F (needed to add 81 and 8f for Harris)
-	 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, //9F
+	 0, 17,  0,  0,  0,  17,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, //9F // 0x91 and 0x95 manualy set to 17 (moto)
 	16,  0,  0, 11, 13, 11, 11, 11, 10,  0,  0,  0,  0,  0,  0,  0, //AF
 	17,  0,  0,  0,  0,  5,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, //BF, B0 was 0, set to 17 (Harris again), B5 Tait 0, set to 5
 	11,  0,  0,  8, 15, 12, 15, 32, 12, 12,  0, 27, 14, 29, 29, 32, //CF
@@ -1634,23 +1634,27 @@ void process_MAC_VPDU(dsd_opts * opts, dsd_state * state, int type, unsigned lon
 			fprintf (stderr, "\n MFID90 Group Regroup Add Command ");	
 		}
 
-		//look for these in logs (these may need a corrected value set for 5B and 5F in len table)
-		if (MAC[1+len_a] == 0x5B && MAC[2+len_a] == 0x90)
+		//the len on these indicate they are always a single messages, foregoing the +len_a index pointer
+		if (MAC[1] == 0x91 && MAC[2] == 0x90)
     {
-			uint8_t len = MAC[3+len_a];
+			uint8_t len = MAC[3]; //this indication is correct, 0x11, or 17 octets including opcode and mfid
 			uint8_t mac_bits[24*8]; memset (mac_bits, 0, sizeof(mac_bits));
-			unpack_byte_array_into_bit_array((uint8_t *)MAC+len_a, mac_bits, len);
-      fprintf (stderr, " MFID90 (Moto) Talker Alias Header");
-      // apx_embedded_alias_header_phase2 (opts, state, state->currentslot, mac_bits);
+			uint8_t bytes[24]; memset (bytes, 0, sizeof(bytes));
+			for (int i = 0; i < 24; i++) bytes[i] = (uint8_t)MAC[i];
+			unpack_byte_array_into_bit_array(bytes+1, mac_bits, len);
+      fprintf (stderr, "\n MFID90 (Moto) Talker Alias Header");
+      apx_embedded_alias_header_phase2 (opts, state, state->currentslot, mac_bits);
     }
 
-    if (MAC[1+len_a] == 0x5F && MAC[2+len_a] == 0x90)
+    if (MAC[1] == 0x95 && MAC[2] == 0x90)
     {
-			uint8_t len = MAC[3+len_a];
+			uint8_t len = MAC[3]; //this indication is correct, 0x11, or 17 octets including opcode and mfid
 			uint8_t mac_bits[24*8]; memset (mac_bits, 0, sizeof(mac_bits));
-			unpack_byte_array_into_bit_array((uint8_t *)MAC+len_a, mac_bits, len);
-      fprintf (stderr, " MFID90 (Moto) Talker Alias Block");
-      // apx_embedded_alias_blocks_phase2 (opts, state, state->currentslot, mac_bits);
+			uint8_t bytes[24]; memset (bytes, 0, sizeof(bytes));
+			for (int i = 0; i < 24; i++) bytes[i] = (uint8_t)MAC[i];
+			unpack_byte_array_into_bit_array(bytes+1, mac_bits, len);
+      fprintf (stderr, "\n MFID90 (Moto) Talker Alias Blocks");
+      apx_embedded_alias_blocks_phase2 (opts, state, state->currentslot, mac_bits);
     }
 
 		//System Service Broadcast
