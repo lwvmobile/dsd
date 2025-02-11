@@ -333,16 +333,24 @@ void nmea_harris (dsd_opts * opts, dsd_state * state, uint8_t * input, uint32_t 
   if (!nmea_ns) latitude  *= -1.0f; //0 is South, 1 is North
   if (!nmea_ew) longitude *= -1.0f; //0 is West, 1 is East
 
-  fprintf (stderr, "\n");
+  //is this from LCW, or MAC?
+  uint16_t header = (uint16_t)ConvertBitIntoBytes(&input[0], 16);
 
-  fprintf (stderr, " VCH: %d - SRC: %08d;", slot, src);
+  fprintf (stderr, "\n");
+  if (header == 0x2AA4)
+    fprintf (stderr, " SRC: %08d;", src);
+  else 
+    fprintf (stderr, " VCH: %d - SRC: %08d;", slot, src);
   fprintf (stderr, " GPS: %f%s, %f%s;", latitude, deg_glyph, longitude, deg_glyph);
 
   //Speed in Knots (assuming in knots, and not in mps, or kph)
-  if (nmea_speed > 126)
-    fprintf (stderr, " SPD > 126 knots or %f MPH;", fmph); //using MPH here, its Harris, they're in the U.S.
-  else
-    fprintf (stderr, " SPD: %d knots; %f MPH;", nmea_speed, fmph);
+  if (header != 0x2AA4) //can't yet verify this is present or accurate on LCW
+  {
+    if (nmea_speed > 126)
+      fprintf (stderr, " SPD > 126 knots or %f MPH;", fmph); //using MPH here, its Harris, they're in the U.S.
+    else
+      fprintf (stderr, " SPD: %d knots; %f MPH;", nmea_speed, fmph);
+  }
 
   //Course Over Ground (COG)
   fprintf (stderr, " COG: %03d%s;", nmea_cog, deg_glyph); //%360

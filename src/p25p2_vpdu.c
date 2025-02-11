@@ -1730,97 +1730,27 @@ void process_MAC_VPDU(dsd_opts * opts, dsd_state * state, int type, unsigned lon
 			// 6.2.36 Manufacturer Specific regarding octet 3 as len
 			int len = MAC[3+len_a] & 0x3F;
 			int res = MAC[3+len_a] >> 6;
-			int k = 0;
-
-			//storage info for storing to groupName, if not available
-			char str[20]; char ttemp[20];
-			int wr = 0, tsrc = 0, ttg = 0;
-			if (slot == 0 && state->lastsrc != 0) tsrc = state->lastsrc;
-			if (slot == 1 && state->lastsrcR != 0) tsrc = state->lastsrcR;
-			if (slot == 0 && state->lasttg != 0) ttg = state->lasttg;
-			if (slot == 1 && state->lasttgR != 0) ttg = state->lasttgR;
-
-			//init str and ttemp as NULL zeroes
-			for (i = 0; i < 20; i++)
-			{
-				str[i] = 0;
-				ttemp[i] = 0;
-			}
-
-			//NOTE: slot is already checked
 			
 			//sanity check that we don't exceed the max MAC array size
 			if (len > 24)
 				len = 24; //should never exceed this len, but just in case it does
 
-			//(TODO: Move Alias to dsd_alias.c)
-			//Harris "Talker" Alias -- Not always in the SACCH, has been seen in the FACCH as well (before MAC_PTT)
-			if (MAC[1+len_a] == 0xA8) //1010 1000 (so, its opcode is 0x28, with the b = 0b10 value for manufacturer message?)
+			//Harris "Talker" Alias
+			if (MAC[1+len_a] == 0xA8)
 			{
-				fprintf (stderr, "\n MFID A4 (Harris); VCH %d; TG: %d; SRC: %d; Talker Alias: ", slot, ttg, tsrc);
-				for (i = 4; i <= len; i++) //len doesn't seem to include the CRC12
-				{
-					if ( (MAC[i+len_a] > 0x19) && (MAC[i+len_a] < 0x7F) )
-						fprintf (stderr, "%c", (char)MAC[i+len_a]);
-					else fprintf (stderr, " ");
+				// fprintf (stderr, "\n MFID A4 (Harris); VCH %d; TG: %d; SRC: %d; Talker Alias: ", slot, ttg, tsrc);
+				fprintf (stderr, "\n MFID A4 (Harris); VCH %d;", slot);
+				uint8_t bytes[24]; memset(bytes, 0, sizeof(bytes));
+				for (int8_t i = 0; i < 24; i++)
+					bytes[i] = (uint8_t)MAC[i];
+				l3h_embedded_alias_decode(opts, state, slot, len, bytes);
+			}
 
-					//disabled, since we load this to the generic_talker_alias string now
-					// if ( (MAC[i+len_a] > 0x19) && (MAC[i+len_a] < 0x7F) )
-					// 	state->dmr_alias_block_segment[slot][0][k/4][k%4] = MAC[i+len_a];
-					// else state->dmr_alias_block_segment[slot][0][k/4][k%4] = 0x20;
-
-					if (MAC[i+len_a] == 0x2C) //remove a comma if it exists, change it to a 0x2E dot
-						ttemp[k] = 0x2E;
-					else if ( (MAC[i+len_a] > 0x19) && (MAC[i+len_a] < 0x7F) )
-						ttemp[k] = MAC[i+len_a];
-					else if (MAC[i+len_a] != 0)
-						ttemp[k] = 0x20; //space
-
-					k++;
-				}
-
-				//assign completed talker to a more useful string instead
-				snprintf (str, k+1, "%s", ttemp); //k+1, because we start at index k = 0;
-
-				//see if we can fill in the groupName if we have a good src value that isn't 0
-				//usually, we have TG values in the groupName field, but this is just for dumping
-				//information for research, etc
-				if (tsrc != 0)
-				{
-					for (int x = 0; x < state->group_tally; x++)
-					{
-						if (state->group_array[x].groupNumber == tsrc)
-						{
-							wr = 1; //already in there, so no need to assign it
-							break;
-						}
-					}
-
-					if (wr == 0) //not already in there, so save it there now
-					{
-						state->group_array[state->group_tally].groupNumber = tsrc;
-						sprintf (state->group_array[state->group_tally].groupMode, "%s", "D");
-						sprintf (state->group_array[state->group_tally].groupName, "%s", str);
-						state->group_tally++;
-
-						//if we have an opened group file, let's write what info we found into it
-						if (opts->group_in_file[0] != 0) //file is available
-						{
-							FILE * pFile; //file pointer
-							//open file by name that is supplied in the ncurses terminal, or cli
-							pFile = fopen (opts->group_in_file, "a");
-							// fprintf (pFile, "%d,D,%s,TG:%d,SYS:%03llX,RFSS:%lld,SITE:%lld\n", tsrc, str, ttg, state->p2_sysid, state->p2_rfssid, state->p2_siteid); //Cygwin Hates this for some reason
-							fprintf (pFile, "%d,D,", tsrc);
-							fprintf (pFile, "%s", str); //for whatever reason, Cygwin likes the string seperate (overflow on pFile?)
-							fprintf (pFile, ",TG:%d,SYS:%03llX,RFSS:%lld,SITE:%lld\n", ttg, state->p2_sysid, state->p2_rfssid, state->p2_siteid);
-							fclose (pFile);
-						}
-
-					}
-				}
-
-				//debug
-				// fprintf (stderr, "\n WR: %d TG: %d SRC: %d Res: %d Len: %d STR: %s", wr, ttg, tsrc, res, len, str);
+			else if (MAC[1+len_a] == 0x81) //speculative based on the EDACS message that is also flushed with all F hex values
+			{
+				fprintf (stderr, "\n MFID A4 (Harris) Group Regroup Bitmap: ");
+				for (i = 4; i <= len; i++)
+					fprintf (stderr, "%02llX", MAC[i+len_a]);
 			}
 
 			else

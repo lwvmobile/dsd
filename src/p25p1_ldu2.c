@@ -698,8 +698,8 @@ void LFSRP(dsd_state * state)
   //print current ENC identifiers already known and new calculated MI
   fprintf (stderr, "%s", KYEL);
   if (state->currentslot == 0)
-    fprintf (stderr, " LDU2/ESS_B FEC ERR - ALG: 0x%02X KEY ID: 0x%04X LFSR MI: 0x%016llX", state->payload_algid, state->payload_keyid, state->payload_miP);
+    fprintf (stderr, "\n LDU2/ESS_B FEC ERR - ALG: 0x%02X KEY ID: 0x%04X LFSR MI: 0x%016llX", state->payload_algid, state->payload_keyid, state->payload_miP);
   if (state->currentslot == 1)
-    fprintf (stderr, " LDU2/ESS_B FEC ERR - ALG: 0x%02X KEY ID: 0x%04X LFSR MI: 0x%016llX", state->payload_algidR, state->payload_keyidR, state->payload_miN);
+    fprintf (stderr, "\n LDU2/ESS_B FEC ERR - ALG: 0x%02X KEY ID: 0x%04X LFSR MI: 0x%016llX", state->payload_algidR, state->payload_keyidR, state->payload_miN);
   fprintf (stderr, "%s", KNRM);
 }

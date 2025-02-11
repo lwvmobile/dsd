@@ -86,6 +86,26 @@ void apx_embedded_alias_test_phase1 (dsd_opts * opts, dsd_state * state)
   for (uint64_t i = 0; i < 8; i++)
     lcw[i+64] = (temp_b >> (7-i)) & 1;
   p25_lcw(opts, state, lcw, 0);
+
+  //Harris Phase 1 GPS
+  state->lastsrc = 1000;
+  temp_a = 0x2AA41D4C24262328; temp_b = 0xAF;
+  memset (lcw, 0, sizeof(lcw));
+  for (uint64_t i = 0; i < 64; i++)
+    lcw[i] = (temp_a >> (63-i)) & 1;
+  for (uint64_t i = 0; i < 8; i++)
+    lcw[i+64] = (temp_b >> (7-i)) & 1;
+  p25_lcw(opts, state, lcw, 0);
+
+  temp_a = 0x2BA44E0DB2660108; temp_b = 0x14;
+  memset (lcw, 0, sizeof(lcw));
+  for (uint64_t i = 0; i < 64; i++)
+    lcw[i] = (temp_a >> (63-i)) & 1;
+  for (uint64_t i = 0; i < 8; i++)
+    lcw[i+64] = (temp_b >> (7-i)) & 1;
+  p25_lcw(opts, state, lcw, 0);
+  state->lastsrc = 0;
+
 }
 
 void apx_embedded_alias_header_phase1 (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t * lc_bits)
@@ -183,7 +203,7 @@ void apx_embedded_alias_header_phase2 (dsd_opts * opts, dsd_state * state, uint8
   fprintf (stderr, " SN: %X;", sn); //NOTE: vPDU header is also a partial block, and has a block num and SN value in it
   fprintf (stderr, " BN: %d/%d;", bn, ta_len);
 
-  //bit array to rearrange input lc_bits from phase 2 mac to match the phase 1 header and block handling
+  //bit array to rearrange input lc_bits from phase 2 input to match the phase 1 header and block handling
   uint8_t bits[136]; memset(bits, 0, sizeof(bits));
   memcpy (bits, lc_bits, 2*8*sizeof(uint8_t));         //header 0x9190
   memcpy (bits+16, lc_bits+24, 4*8*sizeof(uint8_t)); //BN, SN, etc
@@ -432,8 +452,8 @@ void apx_embedded_alias_dump (dsd_opts * opts, dsd_state * state, uint16_t num_b
       //open file by name that is supplied in the ncurses terminal, or cli
       pFile = fopen (opts->group_in_file, "a");
       fprintf (pFile, "%d,D,", rid); //may want to not use this one
-      fprintf (pFile, "%s", str); //for whatever reason, Cygwin likes the string seperate (overflow on pFile?)
-      fprintf (pFile, ",FQS:%05X.%03X.%06X(%d),RFSS:%lld,SITE:%lld\n", wacn, sys, rid, rid, state->p2_rfssid, state->p2_siteid);
+      fprintf (pFile, "%s", str);
+      fprintf (pFile, ",FQS:%05X.%03X.%06X(%d),Moto\n", wacn, sys, rid, rid);
       fclose (pFile);
     }
 
@@ -444,3 +464,152 @@ void apx_embedded_alias_dump (dsd_opts * opts, dsd_state * state, uint16_t num_b
 //end Motorola P25 OTA Alias Decoding
 
 //TODO: Migrate Other OTA Alias functions here
+
+void l3h_embedded_alias_blocks_phase1 (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t * lc_bits)
+{
+
+  uint8_t op  = (uint8_t)ConvertBitIntoBytes(&lc_bits[0], 8);
+  uint8_t ptr = op-0x32;
+  uint8_t bytes[7]; memset(bytes, 0, sizeof(bytes));
+  for (uint8_t i = 0; i < 7; i++)
+    bytes[i] = (uint8_t)ConvertBitIntoBytes(&lc_bits[16+(i*8)], 8);
+
+  //use +4 offset to match the MAC vPDU since that was already worked out long ago
+  memcpy(state->dmr_pdu_sf[slot]+4+(ptr*7), bytes, sizeof(bytes));
+
+  //to be tested
+  if (ptr == 4) //is there always 4 blocks, or is it a variable amount?
+    l3h_embedded_alias_decode(opts, state, slot, 4+28, state->dmr_pdu_sf[slot]);
+}
+
+void l3h_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot, int16_t len, uint8_t * input)
+{
+
+  //storage info for storing to groupName, if not available
+  char str[40];   memset (str, 0, sizeof(str));
+  char ttemp[40]; memset (ttemp, 0, sizeof(ttemp));
+  uint8_t wr = 0;
+  uint32_t tsrc = 0, ttg = 0;
+  if (slot == 0 && state->lastsrc != 0) tsrc = state->lastsrc;
+  if (slot == 1 && state->lastsrcR != 0) tsrc = state->lastsrcR;
+  if (slot == 0 && state->lasttg != 0) ttg = state->lasttg;
+  if (slot == 1 && state->lasttgR != 0) ttg = state->lasttgR;
+
+  int8_t ptr = 0;
+  fprintf (stderr, " TG: %d; SRC: %d; Talker Alias: ", ttg, tsrc);
+  for (int8_t i = 4; i <= len; i++)
+  {
+    if ( (input[i] > 0x19) && (input[i] < 0x7F) )
+      fprintf (stderr, "%c", (char)input[i]);
+    else fprintf (stderr, " ");
+
+    if (input[i] == 0x2C) //remove a comma if it exists, change it to a 0x2E dot
+      ttemp[ptr] = 0x2E;
+    else if ( (input[i] > 0x19) && (input[i] < 0x7F) )
+      ttemp[ptr] = input[i];
+    else if (input[i] != 0)
+      ttemp[ptr] = 0x20; //space
+
+    ptr++;
+  }
+
+  //assign completed talker to a more useful string instead
+  snprintf (str, ptr+1, "%s", ttemp);
+
+  //The Duke Energy system may relay two src values, may be a good idea to pick one and stick with it
+  if (tsrc != 0)
+  {
+    for (int16_t i = 0; i < state->group_tally; i++)
+    {
+      if (state->group_array[i].groupNumber == tsrc)
+      {
+        wr = 1; //already in there, so no need to assign it
+        break;
+      }
+    }
+
+    if (wr == 0) //not already in there, so save it there now
+    {
+      state->group_array[state->group_tally].groupNumber = tsrc;
+      sprintf (state->group_array[state->group_tally].groupMode, "%s", "D");
+      sprintf (state->group_array[state->group_tally].groupName, "%s", str);
+      state->group_tally++;
+
+      //if we have an opened group file, let's write what info we found into it
+      if (opts->group_in_file[0] != 0) //file is available
+      {
+        FILE * pFile; //file pointer
+        //open file by name that is supplied in the ncurses terminal, or cli
+        pFile = fopen (opts->group_in_file, "a");
+        fprintf (pFile, "%d,D,", tsrc);
+        fprintf (pFile, "%s", str);
+        fprintf (pFile, ",TG:%d,SYS:%03llX,RFSS:%lld,SITE:%lld,Harris\n", ttg, state->p2_sysid, state->p2_rfssid, state->p2_siteid);
+        fclose (pFile);
+      }
+
+    }
+  }
+
+  //debug
+  // fprintf (stderr, "\n WR: %d TG: %d SRC: %d Res: %d Len: %d STR: %s", wr, ttg, tsrc, res, len, str);
+
+  //reset storage
+  memset (state->dmr_pdu_sf[slot], 0, sizeof (state->dmr_pdu_sf[slot]));
+
+}
+
+void tait_iso7_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot, int16_t len, uint8_t * input)
+{
+  
+  UNUSED(slot);
+  uint8_t alias[24]; memset(alias, 0, sizeof(alias));
+  for (uint8_t i = 0; i < len; i++)
+  {
+    alias[i] = (uint8_t)ConvertBitIntoBytes(&input[16+(i*7)], 7);
+    fprintf (stderr, "%c", alias[i]);
+    if (alias[i] == 0x2C) //change a comma to a dot
+      alias[i] = 0x2E;
+    else if (alias[i] < 0x20) //change any garble / control chars to a space
+      alias[i] = 0x20;
+  }
+
+  //flag to indicate this already exists in import or group struct
+  uint8_t wr = 0;
+  uint32_t rid  = state->lastsrc;
+  uint16_t nac = state->nac;
+
+  if (rid != 0)
+  {
+    for (int16_t i = 0; i < state->group_tally; i++)
+    {
+      if (state->group_array[i].groupNumber == rid)
+      {
+        wr = 1; //already in there, so no need to assign it
+        break;
+      }
+    }
+
+    if (wr == 0) //not already in there, so save it there now
+    {
+      state->group_array[state->group_tally].groupNumber = rid;
+      sprintf (state->group_array[state->group_tally].groupMode, "%s", "D");
+      sprintf (state->group_array[state->group_tally].groupName, "%s", alias);
+      state->group_tally++;
+
+      //if we have an opened group file, let's write what info we found into it
+      if (opts->group_in_file[0] != 0) //file is available
+      {
+        FILE * pFile; //file pointer
+        //open file by name that is supplied in the ncurses terminal, or cli
+        pFile = fopen (opts->group_in_file, "a");
+        fprintf (pFile, "%d,D,", rid); //may want to not use this one
+        fprintf (pFile, "%s,", alias);
+        fprintf (pFile, "%03X,", nac); //if we find this on a trunking system, may want to add the site and rfss id
+        fprintf (pFile, "%s", ",Tait\n");
+        fclose (pFile);
+      }
+
+    }
+
+  }
+}

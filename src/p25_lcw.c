@@ -469,6 +469,32 @@ void p25_lcw (dsd_opts * opts, dsd_state * state, uint8_t LCW_bits[], uint8_t ir
       apx_embedded_alias_blocks_phase1 (opts, state, 0, LCW_bits);
     }
 
+    else if (lc_mfid == 0xA4 && lc_opcode > 0x31 && lc_opcode < 0x36)
+    {
+      fprintf (stderr, " MFIDA4 (Harris) Talker Alias Blocks");
+      l3h_embedded_alias_blocks_phase1 (opts, state, 0, LCW_bits);
+    }
+
+    //Harris GPS on Phase 1 tested and working
+    else if (lc_mfid == 0xA4 && lc_opcode == 0x2A)
+    {
+      fprintf (stderr, " MFIDA4 (Harris) GPS Block 1");
+      memset(state->dmr_pdu_sf[0], 0, sizeof(state->dmr_pdu_sf[0]));
+      memcpy(state->dmr_pdu_sf[0], LCW_bits, 16*sizeof(uint8_t)); //opcode and mfid for check
+      memcpy(state->dmr_pdu_sf[0]+40, LCW_bits+16, 56*sizeof(uint8_t)); //+40 offset to match the vPDU decoder
+    }
+
+    else if (lc_mfid == 0xA4 && lc_opcode == 0x2B)
+    {
+      fprintf (stderr, " MFIDA4 (Harris) GPS Block 2");      
+      memcpy(state->dmr_pdu_sf[0]+40+56, LCW_bits+16, 56*sizeof(uint8_t)); //+40 +56 to offset first block
+      uint16_t check = (uint16_t)ConvertBitIntoBytes(&state->dmr_pdu_sf[0][0], 16);
+      if (check == 0x2AA4)
+        nmea_harris(opts, state, state->dmr_pdu_sf[0], (uint32_t)state->lastsrc, 0);
+      else fprintf (stderr, " Missing GPS Block 1");
+      memset(state->dmr_pdu_sf[0], 0, sizeof(state->dmr_pdu_sf[0]));
+    }
+
     //observed format value on Harris SNDCP data channel (Phase 2 CC to Phase 1 MPDU channel)
     else if (lc_mfid == 0xA4 && lc_format == 0x0A)
     {
@@ -483,58 +509,8 @@ void p25_lcw (dsd_opts * opts, dsd_state * state, uint8_t LCW_bits[], uint8_t ir
     //observed on Tait conventional / uplink (TODO: Move all this to dsd_alias.c)
     else if (lc_mfid == 0xD8 && lc_format == 0x00)
     {
-      fprintf (stderr, " MFID D8 (Tait) Talker Alias: ");
-      //Up to 8 ISO7 encoded characters. Can other encoding schemes also be used?
-      uint8_t alias[8]; memset(alias, 0, sizeof(alias));
-      for (uint i = 0; i < 8; i++)
-      {
-        alias[i] = (uint8_t)ConvertBitIntoBytes(&LCW_bits[16+(i*7)], 7);
-        fprintf (stderr, "%c", alias[i]);
-        if (alias[i] == 0x2C) //change a comma to a dot
-          alias[i] = 0x2E;
-        else if (alias[i] < 0x20) //change any garble / control chars to a space
-          alias[i] = 0x20;
-      }
-
-      //flag to indicate this already exists in import or group struct
-      uint8_t wr = 0;
-      uint32_t rid  = state->lastsrc;
-
-      if (rid != 0)
-      {
-        for (int16_t i = 0; i < state->group_tally; i++)
-        {
-          if (state->group_array[i].groupNumber == rid)
-          {
-            wr = 1; //already in there, so no need to assign it
-            break;
-          }
-        }
-
-        if (wr == 0) //not already in there, so save it there now
-        {
-          state->group_array[state->group_tally].groupNumber = rid;
-          sprintf (state->group_array[state->group_tally].groupMode, "%s", "D");
-          sprintf (state->group_array[state->group_tally].groupName, "%s", alias);
-          state->group_tally++;
-
-          //if we have an opened group file, let's write what info we found into it
-          if (opts->group_in_file[0] != 0) //file is available
-          {
-            FILE * pFile; //file pointer
-            //open file by name that is supplied in the ncurses terminal, or cli
-            pFile = fopen (opts->group_in_file, "a");
-            fprintf (pFile, "%d,D,", rid); //may want to not use this one
-            fprintf (pFile, "%s", alias); //for whatever reason, Cygwin likes the string seperate (overflow on pFile?)
-            // fprintf (pFile, ",FQS: %05X.%03X.%06X (%d),RFSS:%lld,SITE:%lld\n", wacn, sys, rid, rid, state->p2_rfssid, state->p2_siteid);
-            fprintf (pFile, "%s", ",Tait Talker Alias\n");
-            fclose (pFile);
-          }
-
-        }
-
-      }
-
+      fprintf (stderr, " MFIDD8 (Tait) Talker Alias: ");
+      tait_iso7_embedded_alias_decode(opts, state, 0, 8, LCW_bits);
     }
 
     //not a duplicate, this one will print if not MFID 0 or 1

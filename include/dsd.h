@@ -1265,6 +1265,9 @@ void apx_embedded_alias_blocks_phase1 (dsd_opts * opts, dsd_state * state, uint8
 void apx_embedded_alias_blocks_phase2 (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t * lc_bits);
 void apx_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot, int16_t num_bits, uint8_t * input);
 void apx_embedded_alias_dump (dsd_opts * opts, dsd_state * state, uint16_t num_bytes, uint8_t * input, uint8_t * decoded);
+void l3h_embedded_alias_blocks_phase1 (dsd_opts * opts, dsd_state * state, uint8_t slot, uint8_t * lc_bits);
+void l3h_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot, int16_t len, uint8_t * input);
+void tait_iso7_embedded_alias_decode (dsd_opts * opts, dsd_state * state, uint8_t slot, int16_t len, uint8_t * input);
 void dmr_embedded_gps (dsd_opts * opts, dsd_state * state, uint8_t lc_bits[]);
 void apx_embedded_gps (dsd_opts * opts, dsd_state * state, uint8_t lc_bits[]);
 void lip_protocol_decoder (dsd_opts * opts, dsd_state * state, uint8_t * input);
