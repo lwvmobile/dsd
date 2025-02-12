@@ -147,7 +147,7 @@ After Cygwin finishes installing, the installer sh script will download and run,
 Then:
 
 ```
-C:\cygwin64\bin\mintty.exe /bin/bash -l -c "wget https://raw.githubusercontent.com/lwvmobile/dsd-fme/refs/heads/cygwin_fixes/download-and-install-cygwin.sh; sh download-and-install-cygwin.sh; dsd-fme;"
+C:\cygwin64\bin\mintty.exe /bin/bash -l -c "wget https://raw.githubusercontent.com/lwvmobile/dsd-fme/refs/heads/audio_work/download-and-install-cygwin.sh; sh download-and-install-cygwin.sh; dsd-fme;"
 
 
 ```
