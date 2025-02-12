@@ -105,22 +105,6 @@ cd ..
 cd ..
 ```
 
-Note: Some environment/distro users (Cygwin, Arch, and others) may need to manually copy any libmbe files found in the build folder to the /usr/lib folder on root.
-
-```
-cp libmbe* /usr/lib
-cp cygmbe* /usr/lib
-cp cygmbe* /bin
-```
-
-or
-
-```
-sudo cp libmbe* /usr/lib
-sudo cp cygmbe* /usr/lib
-sudo cp cygmbe* /bin
-```
-
 Finish by running these steps to clone and build DSD-FME.
 
 ```
@@ -135,30 +119,34 @@ sudo ldconfig
 
 ```
 
+### LD_PATH
+
+Some environments may require an LD path to be set to /usr/local/lib, similar to:
+```
+LD_LIBRARY_PATH=/usr/local/lib
+export LD_LIBRARY_PATH
+```
+
 ### Windows Cygwin Builds
 
-If using RTL input support, you must install libusb-win32 before proceeding with Cygwin installation. You will also need to build and compile a version of librtlsdr, but this can be tricky, and personally, I had to resort to using a much older version of the source code to get it to build at all with the rtl support in the precompiled 'Aero' builds.
+Cygwin builds now have an experimental semi-automatic installer, to run, follow steps below:
 
-Then install all dependencies available in the repo prior to building, either directly selecting them during setup with the setup-x86.exe or setup-x64.exe or by issuing a command similar to this:
-
-```
-setup-x64.exe --packages libpulse-devel,libpulse-mainloop-glib0,libpulse-simple0,libpulse0,pulseaudio,pulseaudio-debuginfo,pulseaudio-equalizer,pulseaudio-module-x11,pulseaudio-module-zeroconf,pulseaudio-utils,sox-fmt-pulseaudio,xfce-pulseaudio-plugin,libusb0,libusb1.0,libusb1.0-debuginfo,libusb1.0-devel,libncurses++w10,libncurses-devel,libncursesw10,ncurses,cmake,gcc-core,gcc-debuginfo,gcc-objc,git,make,socat,sox,sox-fmt-ao,unzip,wget,gcc-g++,libsndfile-devel
-```
-
-Then manually install ITPP and MBElib, see above install notes. Be sure to run `cp libmbe* /usr/lib` after compiling MBElib.
-
-Then you can build and install using
+Open Windows PowerShell (not Command Prompt) and copy and paste all of this in all at once.
 
 ```
-git clone https://github.com/lwvmobile/dsd-fme
-cd dsd-fme
-mkdir build
-cd build
-# -DAERO=ON is optional, but recommended if you want the older OSS support as well
-cmake -DAERO=ON ..
-make
-make install
+Invoke-WebRequest https://cygwin.com/setup-x86_64.exe -OutFile setup-x86_64.exe
+.\setup-x86_64.exe --packages nano,libpulse-devel,libpulse-mainloop-glib0,libpulse-simple0,libpulse0,pulseaudio,pulseaudio-debuginfo,pulseaudio-equalizer,pulseaudio-module-x11,pulseaudio-module-zeroconf,pulseaudio-utils,sox-fmt-pulseaudio,libusb0,libusb1.0,libusb1.0-debuginfo,libusb1.0-devel,libncurses++w10,libncurses-devel,libncursesw10,ncurses,cmake,gcc-core,gcc-debuginfo,gcc-objc,git,make,socat,sox,sox-fmt-ao,unzip,wget,gcc-g++,libsndfile-devel
+C:\cygwin64\bin\mintty.exe /bin/bash -l -c "exit"
+C:\cygwin64\bin\mintty.exe /bin/bash -l -c "wget https://raw.githubusercontent.com/lwvmobile/dsd-fme/refs/heads/cygwin_fixes/download-and-install-cygwin.sh; sh download-and-install-cygwin.sh;"
+C:\cygwin64\bin\mintty.exe /bin/bash -l -c "dsd-fme;"
+
 ```
+
+Pick a Mirror. http://www.gtlib.gatech.edu mirror seems relatively fast.
+Nurse the Cygwin installer by clicking next and waiting for it to finish, etc
+Ignore the warning popup telling you to install libusb from sourceforge, it is NOT NEEDED and actually makes the dongle not work with DSD-FME.
+After Cygwin finishes installing, the installer sh script will download and run, be patient, it may also take a little while.
+After the sh script finishes, dsd-fme should open. If not, then double click on the Cygwin Terminal desktop shortcut, and try running `dsd-fme`
 
 ### Virtual Sinks
 
