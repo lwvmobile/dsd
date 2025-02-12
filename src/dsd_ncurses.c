@@ -2419,35 +2419,12 @@ ncursesPrinter (dsd_opts * opts, dsd_state * state)
 
   //Start Printing Section
   erase();
-#ifdef AERO_BUILD
-  if (opts->ncurses_compact == 1)
-  {
-    printw ("------------------------------------------------------------------------------\n");
-    printw ("| Digital Speech Decoder: Florida Man Edition - Aero %s \n", "AW (20231015)");
-    printw ("------------------------------------------------------------------------------\n");
-  }
-#elif LIMAZULUTWEAKS
-  if (opts->ncurses_compact == 1)
-  {
-    printw ("------------------------------------------------------------------------------\n");
-    printw ("| Digital Speech Decoder: LimaZulu Edition VI: Return of the Zulu \n");
-    printw ("------------------------------------------------------------------------------\n");
-  }
-#elif ZDEV_BUILD
-  if (opts->ncurses_compact == 1)
-  {
-    printw ("------------------------------------------------------------------------------\n");
-    printw ("| Digital Speech Decoder: Florida Man Edition - zDEV %s \n", GIT_TAG);
-    printw ("------------------------------------------------------------------------------\n");
-  }
-#else
   if (opts->ncurses_compact == 1)
   {
     printw ("------------------------------------------------------------------------------\n");
     printw ("| Digital Speech Decoder: Florida Man Edition - AW %s \n", GIT_TAG);
     printw ("------------------------------------------------------------------------------\n");
   }
-#endif
   if (opts->ncurses_compact == 0)
   {
     attron(COLOR_PAIR(6));
@@ -2461,16 +2438,12 @@ ncursesPrinter (dsd_opts * opts, dsd_state * state)
       #ifdef USE_CODEC2
       if (i == 4 && opts->frame_m17 == 1) printw (" CODEC2");
       #endif
-      #ifdef AERO_BUILD
-      if (i == 5) printw (" %s ", "Aero Build");
-      if (i == 6) printw (" AW (20231015) \n");
-      #elif ZDEV_BUILD
-      if (i == 5) printw (" %s ", "AW ");
-      if (i == 6) printw (" %s \n", GIT_TAG);
+      #ifdef __CYGWIN__
+      if (i == 5) printw (" %s ", "AW (CYGWIN)");
       #else
       if (i == 5) printw (" %s ", "AW ");
-      if (i == 6) printw (" %s \n", GIT_TAG);
       #endif
+      if (i == 6) printw (" %s \n", GIT_TAG);
       else printw ("\n");
     }
     attroff(COLOR_PAIR(6)); //6
@@ -2865,12 +2838,12 @@ ncursesPrinter (dsd_opts * opts, dsd_state * state)
     printw ("| Voice Error: [%X][%X] Slot 1 (1)", state->errs&0xF, state->errs2&0xF);
     if (opts->slot1_on == 0) printw (" OFF");
     if (opts->slot1_on == 1) printw (" ON");
-    if (opts->slot_preference == 0) printw (" *Preferred");
+    if (opts->slot_preference == 0) printw (" *Preferred (3)");
     printw ("\n");
     printw ("| Voice Error: [%X][%X] Slot 2 (2)", state->errsR&0xF, state->errs2R&0xF);
     if (opts->slot2_on == 0) printw (" OFF");
     if (opts->slot2_on == 1) printw (" ON");
-    if (opts->slot_preference == 1) printw (" *Preferred");
+    if (opts->slot_preference == 1) printw (" *Preferred (3)");
     printw ("\n");
   }
   printw ("------------------------------------------------------------------------------\n");
@@ -4421,7 +4394,7 @@ ncursesPrinter (dsd_opts * opts, dsd_state * state)
     }
   }
 
- #ifdef AERO_BUILD
+ #ifdef __CYGWIN__
  //do nothing
  #else
  if (c == 32) //'space bar' replay last bin file (rework to do wav files too?)
@@ -4475,7 +4448,7 @@ ncursesPrinter (dsd_opts * opts, dsd_state * state)
   }
 
   //
-  #ifdef AERO_BUILD //this might be okay on Aero as well, will need to look into and/or test
+  #ifdef __CYGWIN__ //this might be okay on Aero as well, will need to look into and/or test
   //
   #else
   if (c == 115) //'s' key, stop playing wav or symbol in files

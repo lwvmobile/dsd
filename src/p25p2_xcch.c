@@ -395,7 +395,7 @@ void process_SACCH_MAC_PDU (dsd_opts * opts, dsd_state * state, int payload[180]
 	if (opcode == 0x4 && err == 0)
 	{
 		//disable to prevent blinking in ncurses terminal due to OSS preemption shim
-		#ifdef AERO_BUILD
+		#ifdef __CYGWIN__
 		if (opts->audio_out_type != 5)
 		{
 			if (state->currentslot == 1) state->dmrburstL = 21;
@@ -787,7 +787,7 @@ void process_FACCH_MAC_PDU (dsd_opts * opts, dsd_state * state, int payload[156]
 	if (opcode == 0x4 && err == 0)
 	{
 		//disable to prevent blinking in ncurses terminal due to OSS preemption shim
-		#ifdef AERO_BUILD
+		#ifdef __CYGWIN__
 		if (opts->audio_out_type != 5)
 		{
 			if (state->currentslot == 0) state->dmrburstL = 21;

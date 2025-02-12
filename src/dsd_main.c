@@ -107,12 +107,6 @@ void
 noCarrier (dsd_opts * opts, dsd_state * state)
 {
 
-// #ifdef AERO_BUILD //NOTE: Blame seems to be synctest8 not being initialized (will continue to test)
-// //TODO: Investigate why getSymbol needs to be run first in this context...truly confused here
-// if(opts->frame_m17 == 1) //&& opts->audio_in_type == 5
-//   for (int i = 0; i < 960; i++) getSymbol(opts, state, 1); //I think this is actually just framesync being a pain
-// #endif
-
   if (opts->floating_point == 1)
   {
     state->aout_gain = opts->audio_gain;
@@ -569,7 +563,7 @@ initOpts (dsd_opts * opts)
   opts->p25status = 0;
   opts->p25tg = 0;
   opts->scoperate = 15;
-  #ifdef AERO_BUILD
+  #ifdef __CYGWIN__
   sprintf (opts->audio_in_dev, "/dev/dsp");
   sprintf (opts->audio_out_dev, "/dev/dsp");
   #else
@@ -690,7 +684,7 @@ initOpts (dsd_opts * opts)
 
   //this may not matter so much, since its already checked later on
   //but better safe than sorry I guess
-  #ifdef AERO_BUILD
+  #ifdef __CYGWIN__
   opts->audio_in_type = 9;  //only assign when configured
   opts->audio_out_type = 9; //only assign when configured
   #else
@@ -774,7 +768,7 @@ initOpts (dsd_opts * opts)
   //slot preference is used during OSS audio playback to
   //prefer one tdma voice slot over another when both are playing back
   //this is a fix to OSS 48k/1 output
-  #ifdef AERO_BUILD
+  #ifdef __CYGWIN__
   opts->slot_preference = 0; //default prefer slot 1 -- state->currentslot = 0;
   #else
   opts->slot_preference = 2; //use 2 since integrating the Stereo Channel Patch;
@@ -790,7 +784,7 @@ initOpts (dsd_opts * opts)
   opts->use_hpf_d = 1;
 
   //this is a quick bugfix for issues with OSS and TDMA slot 1/2 audio level mismatch
-  #ifdef AERO_BUILD
+  #ifdef __CYGWIN__
   opts->use_hpf_d = 0;
   #endif
 
@@ -1275,7 +1269,7 @@ usage ()
   printf ("  -O            List All Pulse Audio Input Sources and Output Sinks (devices).\n");
   printf ("\n");
   printf ("Input/Output options:\n");
-  #ifdef AERO_BUILD
+  #ifdef __CYGWIN__
   printf ("  -i <device>   Audio input device (default is /dev/dsp)\n");
   printf ("                pulse for pulse audio (will require pactl running in Cygwin)\n");
   #else
@@ -1293,14 +1287,14 @@ usage ()
   printf ("                filename.bin for OP25/FME capture bin files\n");
   printf ("                filename.wav for 48K/1 wav files (SDR++, GQRX)\n");
   printf ("                filename.wav -s 96000 for 96K/1 wav files (DSDPlus)\n");
-  #ifdef AERO_BUILD
+  #ifdef __CYGWIN__
   printf ("                (Use single quotes '\\directory\\audio file.wav' when directories/spaces are present)\n");
   #else
   printf ("                (Use single quotes '/directory/audio file.wav' when directories/spaces are present)\n");
   #endif
   // printf ("                (Windows - '\directory\audio file.wav' backslash, not forward slash)\n");
   printf ("  -s <rate>     Sample Rate of wav input files (48000 or 96000) Mono only!\n");
-  #ifdef AERO_BUILD
+  #ifdef __CYGWIN__
   printf ("  -o <device>   Audio output device (default is /dev/dsp)\n");
   printf ("                pulse for pulse audio (will require pactl running in Cygwin)\n");
   #else
@@ -1338,7 +1332,7 @@ usage ()
   printf ("  -c <file>     Output symbol capture to .bin file\n");
   printf ("  -q            Reverse Mute - Mute Unencrypted Voice and Unmute Encrypted Voice\n");
   printf ("  -V <num>      Enable TDMA Voice Synthesis on Slot 1 (1), Slot 2 (2), or Both (3); Default is 3; \n");
-  // #ifdef AERO_BUILD
+  // #ifdef __CYGWIN__
   printf ("                If using /dev/dsp input and output at 48k1, launch two instances of DSD-FME w -V 1 and -V 2 if needed");
   // #endif
   // printf ("                 (Audio Smoothing is now disabled on all upsampled output by default -- fix crackle/buzz bug)\n");
@@ -1678,8 +1672,12 @@ int
 main (int argc, char **argv)
 {
   int c;
+  //optarg and optind already defined when using Cygwin, no need to do so again
+  #ifdef __CYGWIN__
+  #else
   extern char *optarg;
-  extern int optind, opterr, optopt;
+  extern int optind;
+  #endif
   dsd_opts opts;
   dsd_state state;
   char versionstr[25];
@@ -1694,8 +1692,8 @@ main (int argc, char **argv)
     fprintf (stderr,"%s\n", FM_banner[i]);
   }
 
-  #ifdef AERO_BUILD
-  fprintf (stderr, "Build Version: AW (20231015) \n");
+  #ifdef __CYGWIN__
+  fprintf (stderr, "Build Version: AW %s (CYGWIN)\n", GIT_TAG);
   #else
   fprintf (stderr, "Build Version: AW %s \n", GIT_TAG);
   #endif
@@ -1716,7 +1714,7 @@ main (int argc, char **argv)
 
   while ((c = getopt (argc, argv, "yhaepPqs:t:v:z:i:o:d:c:g:n:w:B:C:R:f:m:u:x:A:S:M:G:D:L:V:U:YK:b:H:X:NQ:WrlZTF01:2:345:6:7:89Ek:I:JO")) != -1)
     {
-      opterr = 0;
+      
       switch (c)
         {
         case 'h':
@@ -3019,7 +3017,7 @@ main (int argc, char **argv)
       }
       else 
       {
-        #ifdef AERO_BUILD
+        #ifdef __CYGWIN__
         sprintf (opts.audio_in_dev, "%s", "/dev/dsp");
         opts.audio_in_type = 5;
         #else
@@ -3150,7 +3148,7 @@ main (int argc, char **argv)
       rtl_ok = 1;
       #endif
 
-      #ifdef AERO_BUILD
+      #ifdef __CYGWIN__
       if (rtl_ok == 0) //not set, means rtl support isn't compiled/available
       {
         fprintf (stderr, "RTL Support not enabled/compiled, falling back to OSS /dev/dsp Audio Input.\n");
@@ -3205,7 +3203,7 @@ main (int argc, char **argv)
       if (err < 0)
       {
         fprintf (stderr, "Error Configuring UDP Socket for UDP Blaster Audio :( \n");
-        #ifdef AERO_BUILD
+        #ifdef __CYGWIN__
         sprintf (opts.audio_in_dev, "%s", "/dev/dsp");
         opts.audio_in_type = 5;
         //since I can't determine what the configuration will be for 48k1 or 8k2 here(lazy), need to exit

@@ -481,16 +481,6 @@ void process_4V (dsd_opts * opts, dsd_state * state)
 		fprintf (stderr, "\n");
 	}
 
-	// #ifdef AERO_BUILD //FUN FACT: OSS stutters only on Cygwin, using padsp in linux, it actually opens two virtual /dev/dsp audio streams for output
-	// //Cygwin OSS Slot Preference Pre-emption shim
-	// if (opts->audio_out_type == 5)
-	// {
-	// 	//set to 21 for MBE OSS shim to preempt audio 
-	// 	if (state->currentslot == 0) state->dmrburstL = 21;
-	// 	else state->dmrburstR = 21;
-	// }
-	// #endif
-
 	//unsure of the best location for these counter resets
 	if (state->voice_counter[0] >= 18)
 		state->voice_counter[0] = 0;
@@ -777,16 +767,6 @@ void process_2V (dsd_opts * opts, dsd_state * state)
 	{
 		fprintf (stderr, "\n");
 	}
-
-	// #ifdef AERO_BUILD //FUN FACT: OSS stutters only on Cygwin, using padsp in linux, it actually opens two virtual /dev/dsp audio streams for output
-	// //Cygwin OSS Slot Preference Pre-emption shim
-	// if (opts->audio_out_type == 5)
-	// {
-	// 	//set to 21 for MBE OSS shim to preempt audio 
-	// 	if (state->currentslot == 0) state->dmrburstL = 21;
-	// 	else state->dmrburstR = 21;
-	// }
-	// #endif
 
 	//unsure of the best location for these counter resets
 	if (state->voice_counter[0] >= 18)

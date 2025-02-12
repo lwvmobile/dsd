@@ -10,13 +10,6 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
 set(CURSES_NEED_NCURSES TRUE)
 set(CURSES_NEED_WIDE TRUE)
 
-#use cmake option -DAERO=ON to enable Aero Builds (OSS support and specific tweaks)
-option(AERO
-    "Build for Aero Environments (Cygwin)" OFF)
-if (AERO)
-    add_definitions(-DAERO_BUILD) 
-endif ()
-
 #use cmake option -DCOLORS=OFF to disable color output
 option(COLORS
     "Build with Colors Enabled" ON)

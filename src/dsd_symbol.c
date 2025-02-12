@@ -141,7 +141,7 @@ getSymbol (dsd_opts * opts, dsd_state * state, int have_sync)
       //tcp socket input from SDR++ -- now with 1 retry if connection is broken
       else if (opts->audio_in_type == 8)
       {
-        #ifdef AERO_BUILD
+        #ifdef __CYGWIN__
         result = sf_read_short(opts->tcp_file_in, &sample, 1);
         if(result == 0) {
           fprintf (stderr, "\nConnection to TCP Server Interrupted. Trying again in 3 seconds.\n");
