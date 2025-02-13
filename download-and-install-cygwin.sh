@@ -28,18 +28,19 @@ if [ "$ANSWER" = "y" ]; then
   mkdir build
   cd build
   cmake ..
-  make
+  make -j $(nproc)
   make install
 
   #MBELIB
   cd $cdir
+  printf "Installing mbelib\n Please wait!\n"
   git clone https://github.com/lwvmobile/mbelib.git
   cd mbelib
   git checkout ambe_tones
   mkdir build
   cd build
   cmake ..
-  make
+  make -j $(nproc)
   make install
   cp cygmbe-1.dll /bin
 
@@ -51,7 +52,7 @@ if [ "$ANSWER" = "y" ]; then
   mkdir build
   cd build
   cmake ..
-  make
+  make -j $(nproc)
   make install
 
   #RTL-SDR
@@ -62,19 +63,19 @@ if [ "$ANSWER" = "y" ]; then
   mkdir build
   cd build
   cmake ..
-  make
+  make -j $(nproc)
   make install
 
   #DSD-FME
   cd $cdir
-  printf "Installing RTL-SDR\n Please wait!\n"
+  printf "Installing DSD-FME\n Please wait!\n"
   git clone https://github.com/lwvmobile/dsd-fme.git
   cd dsd-fme
   #git checkout cygwin_fixes
   mkdir build
   cd build
   cmake ..
-  make
+  make -j $(nproc)
   make install
 
   printf "Any issues, Please report to either:\nhttps://github.com/lwvmobile/dsd-fme/issues or\nhttps://forums.radioreference.com/threads/dsd-fme.438137/\n\n"
