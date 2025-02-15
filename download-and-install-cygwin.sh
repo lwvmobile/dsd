@@ -145,6 +145,9 @@ if [ "$ANSWER" = "y" ]; then
     mv dsd-fme-portable/dsd-fme/examples/cygwin_bat/*.bat dsd-fme-portable/
     rm -rf dsd-fme-portable/dsd-fme/examples/cygwin_bat
 
+    #change .bat files permissions to be read/write/executable by all users (for some reason, this is not preserved)
+    chmod 777 dsd-fme-portable/*.bat
+
     #copy the license, copyright, source code, and things that should be included in all portable releases
     cp dsd-fme/COPYRIGHT dsd-fme-portable/sourcecode/
     cp dsd-fme/DSD_Author.pgp dsd-fme-portable/sourcecode/

@@ -9,7 +9,7 @@ RELEASE=$(printf "$RELEASE"|tr '[:upper:]' '[:lower:]')
 if [ "$RELEASE" = "y" ]; then
 
   printf "Copying files to dsd-fme-portable folder and making zip file. Please wait!\n"
-  cd $cdir
+  cd ~
 
   #create a dsd-fme-portable folder and copy all the needed items for a portable release version
   mkdir dsd-fme-portable
@@ -31,7 +31,7 @@ if [ "$RELEASE" = "y" ]; then
   mkdir share
   cd share
   mkdir terminfo
-  cd $cdir
+  cd ~
 
   #start copying things
 
@@ -70,6 +70,9 @@ if [ "$RELEASE" = "y" ]; then
   #move (cut) the bat files to the portable folder root and delete the other ones so users won't get confused
   mv dsd-fme-portable/dsd-fme/examples/cygwin_bat/*.bat dsd-fme-portable/
   rm -rf dsd-fme-portable/dsd-fme/examples/cygwin_bat
+
+  #change .bat files permissions to be read/write/executable by all users (for some reason, this is not preserved)
+  chmod 777 dsd-fme-portable/*.bat
 
   #copy the license, copyright, source code, and things that should be included in all portable releases
   cp dsd-fme/COPYRIGHT dsd-fme-portable/sourcecode/
